@@ -164,7 +164,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.BACKGROUND,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -174,26 +174,33 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     marginBottom: 40,
+    backgroundColor: COLORS.SURFACE,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginHorizontal: 10,
   },
   appName: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "white",
+    color: COLORS.PRIMARY,
     marginTop: 10,
   },
   tagline: {
     fontSize: 16,
-    color: "white",
-    opacity: 0.9,
+    color: COLORS.TEXT_SECONDARY,
     marginTop: 5,
   },
   formContainer: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.SURFACE,
     borderRadius: 20,
     padding: 20,
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -202,17 +209,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 30,
-    color: COLORS.PRIMARY,
+    color: COLORS.TEXT_PRIMARY,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: COLORS.BORDER,
     borderRadius: 12,
     marginBottom: 15,
     paddingHorizontal: 15,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: COLORS.SURFACE_VARIANT,
   },
   inputIcon: {
     marginRight: 10,
@@ -221,6 +228,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 15,
     fontSize: 16,
+    color: COLORS.TEXT_PRIMARY,
   },
   authButton: {
     flexDirection: "row",
@@ -252,10 +260,12 @@ const styles = StyleSheet.create({
   demoContainer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: "#e8f5e8",
+    backgroundColor: COLORS.SURFACE_VARIANT,
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.PRIMARY,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
   },
   demoTitle: {
     fontSize: 14,
@@ -265,7 +275,7 @@ const styles = StyleSheet.create({
   },
   demoText: {
     fontSize: 12,
-    color: "#666",
+    color: COLORS.TEXT_SECONDARY,
   },
 });
 

@@ -8,7 +8,10 @@
       "Bash(for file in src/screens/*.js)",
       "Bash(do sed -i '1s/^/import React from ''''react'''';\\n/' \"$file\")",
       "Bash(done)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": [],

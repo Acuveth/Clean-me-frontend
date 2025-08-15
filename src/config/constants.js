@@ -1,11 +1,8 @@
 import { Platform } from "react-native";
+import { getAPIEndpoint } from "./secrets";
 
 // API Configuration
-export const API_BASE_URL = __DEV__
-  ? Platform.OS === "android"
-    ? "http://10.0.2.2:3000/api" // Android emulator
-    : "http://localhost:3000/api" // iOS simulator and web
-  : "https://your-production-api.com/api";
+export const API_BASE_URL = getAPIEndpoint();
 
 // App Configuration
 export const APP_NAME = "Trash Clean";
@@ -43,14 +40,38 @@ export const IMAGE_CONFIG = {
   ALLOW_EDITING: true,
 };
 
-// Colors
+// Dark Mode Colors
 export const COLORS = {
-  PRIMARY: "#4CAF50",
-  SECONDARY: "#2196F3",
-  SUCCESS: "#4CAF50",
-  WARNING: "#FF9800",
-  ERROR: "#F44336",
-  INFO: "#2196F3",
+  // Primary colors
+  PRIMARY: "#00E676", // Bright green for dark mode
+  SECONDARY: "#1E88E5", // Blue
+  ACCENT: "#FF6B35", // Orange accent
+  
+  // Status colors
+  SUCCESS: "#00E676",
+  WARNING: "#FFC107",
+  ERROR: "#FF5252",
+  INFO: "#29B6F6",
+  
+  // Dark theme colors
+  BACKGROUND: "#121212", // Main background
+  SURFACE: "#1E1E1E", // Cards, components
+  SURFACE_VARIANT: "#2D2D2D", // Elevated surfaces
+  
+  // Text colors
+  TEXT_PRIMARY: "#FFFFFF", // Main text
+  TEXT_SECONDARY: "#B0B0B0", // Secondary text
+  TEXT_DISABLED: "#6D6D6D", // Disabled text
+  
+  // Other colors
+  DIVIDER: "#2D2D2D",
+  BORDER: "#3D3D3D",
+  
+  // Gradients
+  GRADIENT_START: "#1A1A1A",
+  GRADIENT_END: "#2D2D2D",
+  
+  // Legacy (for backwards compatibility)
   LIGHT: "#F8F9FA",
-  DARK: "#212529",
+  DARK: "#121212",
 };

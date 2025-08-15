@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { store } from './src/store/store';
+import { COLORS } from './src/config/constants';
 
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -32,7 +33,7 @@ const MainTabs = () => (
             iconName = 'home';
             break;
           case 'Report':
-            iconName = 'report-problem';
+            iconName = 'add-circle';
             break;
           case 'Pickup':
             iconName = 'cleaning-services';
@@ -44,8 +45,21 @@ const MainTabs = () => (
         
         return <MaterialIcons name={iconName} size={size} color={color} />;
       },
-      tabBarActiveTintColor: '#4CAF50',
-      tabBarInactiveTintColor: 'gray',
+      tabBarActiveTintColor: COLORS.PRIMARY,
+      tabBarInactiveTintColor: COLORS.TEXT_DISABLED,
+      tabBarStyle: {
+        backgroundColor: COLORS.SURFACE,
+        borderTopColor: COLORS.BORDER,
+        borderTopWidth: 1,
+        paddingBottom: 5,
+        paddingTop: 5,
+        height: 65,
+      },
+      tabBarLabelStyle: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 5,
+      },
       headerShown: false,
     })}
   >
@@ -59,9 +73,24 @@ const MainTabs = () => (
 const AppNavigator = () => {
   const { user } = useAuth();
   
+  const darkTheme = {
+    dark: true,
+    colors: {
+      primary: COLORS.PRIMARY,
+      background: COLORS.BACKGROUND,
+      card: COLORS.SURFACE,
+      text: COLORS.TEXT_PRIMARY,
+      border: COLORS.BORDER,
+      notification: COLORS.PRIMARY,
+    },
+  };
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer theme={darkTheme}>
+      <Stack.Navigator screenOptions={{ 
+        headerShown: false,
+        cardStyle: { backgroundColor: COLORS.BACKGROUND }
+      }}>
         {user ? (
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />

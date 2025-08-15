@@ -36,4 +36,12 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Secrets and API keys (NEVER COMMIT)
+src/config/secrets.js
+secrets.js
+.env
+.env.local
+.env.production
+.env.staging
+
 app-example

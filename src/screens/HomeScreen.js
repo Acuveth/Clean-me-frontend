@@ -11,9 +11,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from "react-native";
+import { WebView } from 'react-native-webview';
 import { useDispatch, useSelector } from "react-redux";
 import { COLORS, MAP_DEFAULTS } from "../config/constants";
+import { SECRETS } from "../config/secrets";
 import { fetchTrashReports } from "../store/trashSlice";
 
 const HomeScreen = ({ navigation }) => {
@@ -69,49 +72,161 @@ const HomeScreen = ({ navigation }) => {
     getCurrentLocation();
   };
 
-  // Web Map Component (placeholder)
-  const WebMapView = () => (
-    <View style={styles.webMapContainer}>
-      <MaterialIcons name="map" size={100} color="#ddd" />
-      <Text style={styles.webMapText}>Map View</Text>
-      <Text style={styles.webMapSubtext}>
-        {location
-          ? `Location: ${location.latitude.toFixed(
-              4
-            )}, ${location.longitude.toFixed(4)}`
-          : "Getting location..."}
-      </Text>
-      <Text style={styles.webMapNote}>
-        Maps are not available on web. Use the mobile app for full map
-        functionality.
-      </Text>
+  // Generate Google Maps HTML with markers
+  const generateMapHTML = () => {
+    const markers = reports.map(report => ({
+      lat: parseFloat(report.latitude) || 0,
+      lng: parseFloat(report.longitude) || 0,
+      title: `${report.trash_type} - ${report.size}`,
+      status: report.status,
+      id: report.id
+    }));
 
-      {/* Show reports as a list on web */}
-      <View style={styles.webReportsList}>
-        <Text style={styles.reportsTitle}>Nearby Reports:</Text>
-        {reports.slice(0, 5).map((report, index) => (
-          <TouchableOpacity
-            key={report.id || index}
-            style={styles.reportItem}
-            onPress={() => onMarkerPress(report)}
+    return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          #map {
+            height: 100%;
+            width: 100%;
+          }
+          html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          function initMap() {
+            const userLocation = {
+              lat: ${location?.latitude || 37.7749},
+              lng: ${location?.longitude || -122.4194}
+            };
+
+            const map = new google.maps.Map(document.getElementById("map"), {
+              zoom: 13,
+              center: userLocation,
+              styles: [
+                {
+                  featureType: "poi",
+                  elementType: "labels",
+                  stylers: [{ visibility: "off" }]
+                }
+              ]
+            });
+
+            // Add user location marker
+            new google.maps.Marker({
+              position: userLocation,
+              map: map,
+              title: "Your Location",
+              icon: {
+                url: 'data:image/svg+xml;base64,' + btoa(\`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="${COLORS.PRIMARY}">
+                    <circle cx="12" cy="12" r="8" stroke="white" stroke-width="2"/>
+                    <circle cx="12" cy="12" r="3" fill="white"/>
+                  </svg>
+                \`),
+                scaledSize: new google.maps.Size(30, 30),
+                anchor: new google.maps.Point(15, 15)
+              }
+            });
+
+            // Add trash location markers
+            const trashMarkers = ${JSON.stringify(markers)};
+            trashMarkers.forEach(marker => {
+              const markerIcon = marker.status === 'pending' ? 
+                'data:image/svg+xml;base64,' + btoa(\`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="35" viewBox="0 0 24 24" fill="${COLORS.ERROR}">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                \`) :
+                'data:image/svg+xml;base64,' + btoa(\`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="35" viewBox="0 0 24 24" fill="${COLORS.SUCCESS}">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                \`);
+
+              const trashMarker = new google.maps.Marker({
+                position: { lat: marker.lat, lng: marker.lng },
+                map: map,
+                title: marker.title,
+                icon: {
+                  url: markerIcon,
+                  scaledSize: new google.maps.Size(25, 35),
+                  anchor: new google.maps.Point(12, 35)
+                }
+              });
+
+              trashMarker.addListener('click', () => {
+                window.ReactNativeWebView?.postMessage(JSON.stringify({
+                  type: 'markerClick',
+                  reportId: marker.id
+                }));
+              });
+            });
+          }
+        </script>
+        <script async defer 
+          src="https://maps.googleapis.com/maps/api/js?key=${SECRETS.GOOGLE_MAPS_API_KEY}&callback=initMap">
+        </script>
+      </body>
+    </html>`;
+  };
+
+  // Google Maps View Component
+  const GoogleMapsView = () => {
+    if (!location) {
+      return (
+        <View style={styles.mapPlaceholder}>
+          <MaterialIcons name="map" size={60} color="#ccc" />
+          <Text style={styles.placeholderText}>Loading map...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.mapContainer}>
+        <WebView
+          source={{ html: generateMapHTML() }}
+          style={styles.webMap}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'markerClick' && data.reportId) {
+                onMarkerPress({ id: data.reportId });
+              }
+            } catch (error) {
+              console.log('Error parsing WebView message:', error);
+            }
+          }}
+        />
+        
+        {/* Floating action buttons */}
+        <View style={styles.floatingActions}>
+          <TouchableOpacity 
+            style={styles.fabPrimary}
+            onPress={() => navigation.navigate('Report')}
           >
-            <MaterialIcons
-              name={
-                report.status === "pending" ? "report-problem" : "check-circle"
-              }
-              size={20}
-              color={
-                report.status === "pending" ? COLORS.ERROR : COLORS.SUCCESS
-              }
-            />
-            <Text style={styles.reportText}>
-              {report.trash_type} - {report.size}
-            </Text>
+            <MaterialIcons name="add-location" size={24} color="white" />
           </TouchableOpacity>
-        ))}
+          
+          <TouchableOpacity 
+            style={styles.fabSecondary}
+            onPress={() => navigation.navigate('Pickup')}
+          >
+            <MaterialIcons name="cleaning-services" size={20} color={COLORS.PRIMARY} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -144,67 +259,8 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Map - Platform specific */}
-      {Platform.OS === "web" || !MapView ? (
-        <WebMapView />
-      ) : location ? (
-        <MapView
-          style={styles.map}
-          region={location}
-          showsUserLocation={true}
-          showsMyLocationButton={true}
-          loadingEnabled={true}
-        >
-          {reports.map((report, index) => (
-            <Marker
-              key={report.id || index}
-              coordinate={{
-                latitude: parseFloat(report.latitude) || 0,
-                longitude: parseFloat(report.longitude) || 0,
-              }}
-              title={`${report.trash_type} - ${report.size}`}
-              description={report.description || "Trash report"}
-              pinColor={
-                report.status === "pending" ? COLORS.ERROR : COLORS.SUCCESS
-              }
-              onPress={() => onMarkerPress(report)}
-            >
-              <View
-                style={[
-                  styles.markerContainer,
-                  {
-                    backgroundColor:
-                      report.status === "pending"
-                        ? COLORS.ERROR
-                        : COLORS.SUCCESS,
-                  },
-                ]}
-              >
-                <MaterialIcons
-                  name={
-                    report.status === "pending"
-                      ? "report-problem"
-                      : "check-circle"
-                  }
-                  size={20}
-                  color="white"
-                />
-              </View>
-            </Marker>
-          ))}
-        </MapView>
-      ) : (
-        <View style={styles.noLocationContainer}>
-          <MaterialIcons name="location-off" size={60} color="#ccc" />
-          <Text style={styles.noLocationText}>Unable to load map</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={getCurrentLocation}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Google Maps View */}
+      <GoogleMapsView />
 
       {/* Stats Footer */}
       <View style={styles.statsContainer}>
@@ -234,13 +290,13 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLORS.BACKGROUND,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLORS.BACKGROUND,
   },
   loader: {
     marginTop: 20,
@@ -248,10 +304,10 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 15,
     fontSize: 16,
-    color: "#666",
+    color: COLORS.TEXT_SECONDARY,
   },
   header: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.SURFACE,
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
@@ -273,7 +329,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.TEXT_SECONDARY,
     position: "absolute",
     bottom: 15,
     left: 20,
@@ -281,64 +337,59 @@ const styles = StyleSheet.create({
   refreshButton: {
     padding: 8,
   },
-  map: {
+  // Google Maps styles
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  webMap: {
     flex: 1,
   },
-  // Web-specific styles
-  webMapContainer: {
+  mapPlaceholder: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.BACKGROUND,
   },
-  webMapText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#666",
+  placeholderText: {
     marginTop: 10,
-  },
-  webMapSubtext: {
     fontSize: 16,
-    color: "#888",
-    marginTop: 5,
-    textAlign: "center",
+    color: COLORS.TEXT_SECONDARY,
   },
-  webMapNote: {
-    fontSize: 14,
-    color: "#999",
-    marginTop: 10,
-    textAlign: "center",
-    fontStyle: "italic",
+  floatingActions: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    alignItems: 'flex-end',
   },
-  webReportsList: {
-    marginTop: 30,
-    width: "100%",
-    maxWidth: 400,
+  fabPrimary: {
+    backgroundColor: COLORS.PRIMARY,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  reportsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.PRIMARY,
-    marginBottom: 10,
-  },
-  reportItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  reportText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#333",
+  fabSecondary: {
+    backgroundColor: 'white',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.PRIMARY,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   markerContainer: {
     width: 40,
@@ -373,14 +424,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   statsContainer: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.SURFACE,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: COLORS.BORDER,
   },
   statItem: {
     flex: 1,
@@ -393,13 +444,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
+    color: COLORS.TEXT_SECONDARY,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "#eee",
+    backgroundColor: COLORS.DIVIDER,
   },
 });
 
