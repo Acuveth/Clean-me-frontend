@@ -1,3 +1,5 @@
+import React from 'react';
+import { registerRootComponent } from 'expo';
 import { MaterialIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
@@ -80,5 +82,7 @@ const App = () => (
     </AuthProvider>
   </Provider>
 );
+
+registerRootComponent(App);
 
 export default App;

@@ -1,3 +1,4 @@
+import React from 'react';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
@@ -5,12 +6,12 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
 import { useDispatch, useSelector } from "react-redux";
 import { COLORS, MAP_DEFAULTS } from "../config/constants";
 import { fetchTrashReports } from "../store/trashSlice";
@@ -68,6 +69,50 @@ const HomeScreen = ({ navigation }) => {
     getCurrentLocation();
   };
 
+  // Web Map Component (placeholder)
+  const WebMapView = () => (
+    <View style={styles.webMapContainer}>
+      <MaterialIcons name="map" size={100} color="#ddd" />
+      <Text style={styles.webMapText}>Map View</Text>
+      <Text style={styles.webMapSubtext}>
+        {location
+          ? `Location: ${location.latitude.toFixed(
+              4
+            )}, ${location.longitude.toFixed(4)}`
+          : "Getting location..."}
+      </Text>
+      <Text style={styles.webMapNote}>
+        Maps are not available on web. Use the mobile app for full map
+        functionality.
+      </Text>
+
+      {/* Show reports as a list on web */}
+      <View style={styles.webReportsList}>
+        <Text style={styles.reportsTitle}>Nearby Reports:</Text>
+        {reports.slice(0, 5).map((report, index) => (
+          <TouchableOpacity
+            key={report.id || index}
+            style={styles.reportItem}
+            onPress={() => onMarkerPress(report)}
+          >
+            <MaterialIcons
+              name={
+                report.status === "pending" ? "report-problem" : "check-circle"
+              }
+              size={20}
+              color={
+                report.status === "pending" ? COLORS.ERROR : COLORS.SUCCESS
+              }
+            />
+            <Text style={styles.reportText}>
+              {report.trash_type} - {report.size}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -99,8 +144,10 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Map */}
-      {location ? (
+      {/* Map - Platform specific */}
+      {Platform.OS === "web" || !MapView ? (
+        <WebMapView />
+      ) : location ? (
         <MapView
           style={styles.map}
           region={location}
@@ -108,12 +155,12 @@ const HomeScreen = ({ navigation }) => {
           showsMyLocationButton={true}
           loadingEnabled={true}
         >
-          {reports.map((report) => (
+          {reports.map((report, index) => (
             <Marker
-              key={report.id}
+              key={report.id || index}
               coordinate={{
-                latitude: parseFloat(report.latitude),
-                longitude: parseFloat(report.longitude),
+                latitude: parseFloat(report.latitude) || 0,
+                longitude: parseFloat(report.longitude) || 0,
               }}
               title={`${report.trash_type} - ${report.size}`}
               description={report.description || "Trash report"}
@@ -236,6 +283,62 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  // Web-specific styles
+  webMapContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+  },
+  webMapText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#666",
+    marginTop: 10,
+  },
+  webMapSubtext: {
+    fontSize: 16,
+    color: "#888",
+    marginTop: 5,
+    textAlign: "center",
+  },
+  webMapNote: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 10,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  webReportsList: {
+    marginTop: 30,
+    width: "100%",
+    maxWidth: 400,
+  },
+  reportsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.PRIMARY,
+    marginBottom: 10,
+  },
+  reportItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  reportText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#333",
   },
   markerContainer: {
     width: 40,

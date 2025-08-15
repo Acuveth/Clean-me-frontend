@@ -1,5 +1,5 @@
-import * as SecureStore from "expo-secure-store";
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import storage from "../utils/storage";
 import { API_BASE_URL } from "../config/constants";
 
 const AuthContext = createContext();
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthState = async () => {
     try {
-      const token = await SecureStore.getItemAsync("authToken");
+      const token = await storage.getItemAsync("authToken");
       if (token) {
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -43,15 +43,16 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const { user, token } = await response.json();
-        await SecureStore.setItemAsync("authToken", token);
+        await storage.setItemAsync("authToken", token);
         setUser(user);
         return { success: true };
       } else {
         const error = await response.json();
-        return { success: false, error: error.message };
+        return { success: false, error: error.error || error.message || "Authentication failed" };
       }
     } catch (error) {
-      return { success: false, error: "Network error" };
+      console.error("Login error:", error);
+      return { success: false, error: "Network error. Please check your connection." };
     }
   };
 
@@ -65,20 +66,21 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         const { user, token } = await response.json();
-        await SecureStore.setItemAsync("authToken", token);
+        await storage.setItemAsync("authToken", token);
         setUser(user);
         return { success: true };
       } else {
         const error = await response.json();
-        return { success: false, error: error.message };
+        return { success: false, error: error.error || error.message || "Registration failed" };
       }
     } catch (error) {
-      return { success: false, error: "Network error" };
+      console.error("Registration error:", error);
+      return { success: false, error: "Network error. Please check your connection." };
     }
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync("authToken");
+    await storage.deleteItemAsync("authToken");
     setUser(null);
   };
 

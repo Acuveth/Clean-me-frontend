@@ -1,3 +1,4 @@
+import React from 'react';
 import { MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
