@@ -23,7 +23,7 @@ const LoginScreen = () => {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password || (!isLogin && !name)) {
@@ -48,6 +48,17 @@ const LoginScreen = () => {
     setName("");
     setPassword("");
   };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const result = await loginWithGoogle();
+    setLoading(false);
+    
+    if (!result.success) {
+      Alert.alert("Error", result.error);
+    }
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -139,6 +150,22 @@ const LoginScreen = () => {
                 </Text>
               </>
             )}
+          </TouchableOpacity>
+
+          {/* OAuth2 Login Options */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.googleButton, loading && styles.disabledButton]}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <MaterialIcons name="g-translate" size={20} color="#DB4437" />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.toggleButton} onPress={toggleMode}>
@@ -276,6 +303,39 @@ const styles = StyleSheet.create({
   demoText: {
     fontSize: 12,
     color: COLORS.TEXT_SECONDARY,
+  },
+  // OAuth styles
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.BORDER,
+  },
+  dividerText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: 14,
+    paddingHorizontal: 15,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.SURFACE_VARIANT,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  googleButtonText: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
   },
 });
 

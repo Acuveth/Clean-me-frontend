@@ -40,38 +40,49 @@ export const IMAGE_CONFIG = {
   ALLOW_EDITING: true,
 };
 
-// Dark Mode Colors
+// Enhanced Dark Mode Colors
 export const COLORS = {
-  // Primary colors
-  PRIMARY: "#00E676", // Bright green for dark mode
+  // Primary colors with better contrast
+  PRIMARY: "#00E676", // Bright green
+  PRIMARY_DARK: "#00C853", // Darker green for pressed states
+  PRIMARY_LIGHT: "#69F0AE", // Lighter green for highlights
   SECONDARY: "#1E88E5", // Blue
   ACCENT: "#FF6B35", // Orange accent
   
   // Status colors
-  SUCCESS: "#00E676",
-  WARNING: "#FFC107",
-  ERROR: "#FF5252",
-  INFO: "#29B6F6",
+  SUCCESS: "#4CAF50",
+  WARNING: "#FFA726",
+  ERROR: "#EF5350",
+  INFO: "#42A5F5",
   
-  // Dark theme colors
-  BACKGROUND: "#121212", // Main background
-  SURFACE: "#1E1E1E", // Cards, components
-  SURFACE_VARIANT: "#2D2D2D", // Elevated surfaces
+  // Enhanced dark theme colors
+  BACKGROUND: "#0A0A0A", // Deeper black for better contrast
+  BACKGROUND_SECONDARY: "#121212", // Secondary background
+  SURFACE: "#1C1C1C", // Cards, components
+  SURFACE_VARIANT: "#2A2A2A", // Elevated surfaces
+  SURFACE_HIGH: "#333333", // Highest elevation
   
-  // Text colors
+  // Text colors with better hierarchy
   TEXT_PRIMARY: "#FFFFFF", // Main text
-  TEXT_SECONDARY: "#B0B0B0", // Secondary text
-  TEXT_DISABLED: "#6D6D6D", // Disabled text
+  TEXT_SECONDARY: "#CCCCCC", // Secondary text (improved readability)
+  TEXT_TERTIARY: "#999999", // Tertiary text
+  TEXT_DISABLED: "#666666", // Disabled text
   
-  // Other colors
-  DIVIDER: "#2D2D2D",
-  BORDER: "#3D3D3D",
+  // Interactive elements
+  DIVIDER: "#333333",
+  BORDER: "#404040",
+  BORDER_LIGHT: "#555555",
   
-  // Gradients
-  GRADIENT_START: "#1A1A1A",
-  GRADIENT_END: "#2D2D2D",
+  // Gradients for visual appeal
+  GRADIENT_PRIMARY: ["#00E676", "#00C853"],
+  GRADIENT_SURFACE: ["#1C1C1C", "#2A2A2A"],
+  GRADIENT_BACKGROUND: ["#0A0A0A", "#1C1C1C"],
+  
+  // Special colors
+  OVERLAY: "rgba(0, 0, 0, 0.7)",
+  SHADOW: "rgba(0, 0, 0, 0.5)",
   
   // Legacy (for backwards compatibility)
   LIGHT: "#F8F9FA",
-  DARK: "#121212",
+  DARK: "#0A0A0A",
 };

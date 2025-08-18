@@ -15,6 +15,7 @@ import PickupTrashScreen from './src/screens/PickupTrashScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ReportTrashScreen from './src/screens/ReportTrashScreen';
 import TrashDetailScreen from './src/screens/TrashDetailScreen';
+import PickupVerificationScreen from './src/screens/PickupVerificationScreen';
 
 // Context
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -83,6 +84,24 @@ const AppNavigator = () => {
       border: COLORS.BORDER,
       notification: COLORS.PRIMARY,
     },
+    fonts: {
+      regular: {
+        fontFamily: 'System',
+        fontWeight: '400',
+      },
+      medium: {
+        fontFamily: 'System',
+        fontWeight: '600',
+      },
+      bold: {
+        fontFamily: 'System',
+        fontWeight: '700',
+      },
+      heavy: {
+        fontFamily: 'System',
+        fontWeight: '900',
+      },
+    },
   };
 
   return (
@@ -95,6 +114,7 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="TrashDetail" component={TrashDetailScreen} />
+            <Stack.Screen name="PickupVerification" component={PickupVerificationScreen} />
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
