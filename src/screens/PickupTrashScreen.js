@@ -13,6 +13,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { COLORS } from '../config/constants';
+import { pickupVerificationService } from '../services/pickupVerification';
 
 const PickupTrashScreen = () => {
   const navigation = useNavigation();
@@ -21,10 +22,33 @@ const PickupTrashScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
+  const formatReportedTime = (timestamp) => {
+    if (!timestamp) return 'Unknown time';
+    
+    const now = new Date();
+    const reportedAt = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - reportedAt) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 1440) { // 24 hours
+      const hours = Math.floor(diffInMinutes / 60);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(diffInMinutes / 1440);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+  };
+
   useEffect(() => {
-    loadTrashItems();
     getCurrentLocation();
   }, []);
+
+  useEffect(() => {
+    if (userLocation) {
+      loadTrashItems();
+    }
+  }, [userLocation]);
 
   const getCurrentLocation = async () => {
     try {
@@ -32,49 +56,56 @@ const PickupTrashScreen = () => {
       if (status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
         setUserLocation(location.coords);
+      } else {
+        Alert.alert(
+          'Location Permission Required',
+          'We need location access to find nearby trash for pickup.',
+          [{ text: 'OK' }]
+        );
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your location. Please check your settings.');
+      setLoading(false);
     }
   };
 
   const loadTrashItems = async () => {
     try {
-      // Mock data for now - replace with actual API call
-      const mockData = [
-        {
-          id: '1',
-          description: 'Plastic bottles near park bench',
-          location: { latitude: 37.7749, longitude: -122.4194 },
-          reportedTime: '2 hours ago',
-          distance: '0.3 km',
-          points: 10,
-          imageUrl: null,
-        },
-        {
-          id: '2',
-          description: 'Food wrapper on sidewalk',
-          location: { latitude: 37.7751, longitude: -122.4196 },
-          reportedTime: '5 hours ago',
-          distance: '0.5 km',
-          points: 5,
-          imageUrl: null,
-        },
-        {
-          id: '3',
-          description: 'Cardboard box by bus stop',
-          location: { latitude: 37.7745, longitude: -122.4190 },
-          reportedTime: '1 day ago',
-          distance: '0.8 km',
-          points: 8,
-          imageUrl: null,
-        },
-      ];
+      if (!userLocation) {
+        // If we don't have location yet, get it first
+        await getCurrentLocation();
+        return;
+      }
+
+      const items = await pickupVerificationService.getTrashItemsNearby(
+        userLocation,
+        1000 // 1km radius
+      );
       
-      setTrashItems(mockData);
+      // Transform the API response to match our UI expectations
+      const transformedItems = items.map(item => ({
+        id: item.id.toString(),
+        description: item.description || 'Trash reported',
+        location: {
+          latitude: parseFloat(item.location.latitude),
+          longitude: parseFloat(item.location.longitude)
+        },
+        reportedTime: formatReportedTime(item.reportedAt),
+        distance: `${(item.distance / 1000).toFixed(1)} km`,
+        points: item.points || 10,
+        imageUrl: item.imageUrl,
+        trashType: item.trashType,
+        size: item.size,
+        severity: item.severity,
+        locationContext: item.locationContext
+      }));
+      
+      setTrashItems(transformedItems);
     } catch (error) {
       console.error('Error loading trash items:', error);
-      Alert.alert('Error', 'Failed to load trash items');
+      Alert.alert('Error', 'Failed to load trash items. Please check your connection.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -133,7 +164,9 @@ const PickupTrashScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-        <Text style={styles.loadingText}>Loading nearby trash...</Text>
+        <Text style={styles.loadingText}>
+          {!userLocation ? 'Getting your location...' : 'Loading nearby trash...'}
+        </Text>
       </View>
     );
   }

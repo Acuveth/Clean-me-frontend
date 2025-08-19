@@ -17,6 +17,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { pickupVerificationService } from '../services/pickupVerification';
+import { COLORS } from '../config/constants';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -208,7 +209,7 @@ const PickupVerificationScreen = () => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+            <Ionicons name="checkmark-circle" size={80} color={COLORS.SUCCESS} />
           </View>
           <Text style={styles.modalTitle}>Pickup Verified!</Text>
           <Text style={styles.modalText}>
@@ -229,7 +230,7 @@ const PickupVerificationScreen = () => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.failureIcon}>
-            <Ionicons name="close-circle" size={80} color="#F44336" />
+            <Ionicons name="close-circle" size={80} color={COLORS.ERROR} />
           </View>
           <Text style={styles.modalTitle}>Verification Failed</Text>
           <Text style={styles.modalText}>
@@ -253,16 +254,22 @@ const PickupVerificationScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.TEXT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Verify Pickup</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Verify Pickup</Text>
+            <Text style={styles.headerSubtitle}>Complete your cleanup</Text>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.content}>
           <View style={styles.instructionCard}>
-            <Ionicons name="information-circle" size={24} color="#2196F3" />
+            <Ionicons name="information-circle" size={24} color={COLORS.INFO} />
             <Text style={styles.instructionText}>
               To verify your pickup, please take a photo of the trash item while holding it in your hand.
             </Text>
@@ -280,11 +287,11 @@ const PickupVerificationScreen = () => {
               <Ionicons 
                 name="location" 
                 size={20} 
-                color={distanceToTrash <= 50 ? "#4CAF50" : "#FF9800"} 
+                color={distanceToTrash <= 50 ? COLORS.SUCCESS : COLORS.WARNING} 
               />
               <Text style={[
                 styles.distanceText,
-                { color: distanceToTrash <= 50 ? "#4CAF50" : "#FF9800" }
+                { color: distanceToTrash <= 50 ? COLORS.SUCCESS : COLORS.WARNING }
               ]}>
                 {distanceToTrash <= 50 
                   ? `You are ${Math.round(distanceToTrash)}m from the trash location ✓`
@@ -296,7 +303,7 @@ const PickupVerificationScreen = () => {
 
           {!capturedImage ? (
             <TouchableOpacity style={styles.cameraButton} onPress={takePicture}>
-              <Ionicons name="camera" size={48} color="#FFF" />
+              <Ionicons name="camera" size={48} color={COLORS.TEXT_PRIMARY} />
               <Text style={styles.cameraButtonText}>Take Photo</Text>
             </TouchableOpacity>
           ) : (
@@ -307,19 +314,23 @@ const PickupVerificationScreen = () => {
                   style={[styles.actionButton, styles.retakeButton]}
                   onPress={retakePicture}
                 >
-                  <Ionicons name="refresh" size={20} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Retake</Text>
+                  <Ionicons name="refresh" size={20} color={COLORS.TEXT_PRIMARY} />
+                  <Text style={[styles.actionButtonText, styles.retakeButtonText]}>Retake</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.actionButton, styles.verifyButton]}
+                  style={[
+                    styles.actionButton, 
+                    styles.verifyButton,
+                    (isVerifying || distanceToTrash > 50) && styles.disabledButton
+                  ]}
                   onPress={verifyPickup}
                   disabled={isVerifying || distanceToTrash > 50}
                 >
                   {isVerifying ? (
-                    <ActivityIndicator color="#FFF" />
+                    <ActivityIndicator color={COLORS.TEXT_PRIMARY} />
                   ) : (
                     <>
-                      <Ionicons name="checkmark-done" size={20} color="#FFF" />
+                      <Ionicons name="checkmark-done" size={20} color={COLORS.TEXT_PRIMARY} />
                       <Text style={styles.actionButtonText}>Verify Pickup</Text>
                     </>
                   )}
@@ -330,7 +341,7 @@ const PickupVerificationScreen = () => {
 
           {verificationStatus === 'error' && (
             <View style={styles.errorMessage}>
-              <Ionicons name="alert-circle" size={20} color="#F44336" />
+              <Ionicons name="alert-circle" size={20} color={COLORS.ERROR} />
               <Text style={styles.errorText}>
                 Verification failed. Please try again.
               </Text>
@@ -348,7 +359,7 @@ const PickupVerificationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.BACKGROUND,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -358,14 +369,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingTop: 20,
+    backgroundColor: COLORS.PRIMARY,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  headerContent: {
+    alignItems: 'center',
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.TEXT_PRIMARY,
+    opacity: 0.9,
   },
   content: {
     flex: 1,
@@ -373,48 +397,49 @@ const styles = StyleSheet.create({
   },
   instructionCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: COLORS.SURFACE_VARIANT,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
   },
   instructionText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: '#1976D2',
+    color: COLORS.TEXT_SECONDARY,
     lineHeight: 20,
   },
   trashInfoCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.SURFACE,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
   },
   trashInfoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: COLORS.TEXT_SECONDARY,
     marginBottom: 8,
   },
   trashInfoText: {
     fontSize: 16,
-    color: '#333',
+    color: COLORS.TEXT_PRIMARY,
     lineHeight: 22,
   },
   distanceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.SURFACE,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
   },
   distanceText: {
     marginLeft: 8,
@@ -422,7 +447,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   cameraButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: COLORS.PRIMARY,
     padding: 32,
     borderRadius: 16,
     alignItems: 'center',
@@ -430,7 +455,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   cameraButtonText: {
-    color: '#FFF',
+    color: COLORS.BACKGROUND,
     fontSize: 18,
     fontWeight: '600',
     marginTop: 12,
@@ -455,45 +480,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
+    shadowColor: COLORS.SHADOW,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   retakeButton: {
-    backgroundColor: '#757575',
+    backgroundColor: COLORS.TEXT_TERTIARY,
   },
   verifyButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: COLORS.SUCCESS,
+  },
+  disabledButton: {
+    backgroundColor: COLORS.TEXT_DISABLED,
+    opacity: 0.6,
   },
   actionButtonText: {
-    color: '#FFF',
+    color: COLORS.BACKGROUND,
     fontSize: 16,
     fontWeight: '600',
+  },
+  retakeButtonText: {
+    color: COLORS.TEXT_PRIMARY,
   },
   errorMessage: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: COLORS.SURFACE_VARIANT,
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: COLORS.ERROR,
   },
   errorText: {
     marginLeft: 8,
-    color: '#C62828',
+    color: COLORS.ERROR,
     fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: COLORS.OVERLAY,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.SURFACE,
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
     width: screenWidth * 0.85,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
   },
   successIcon: {
     marginBottom: 16,
@@ -504,12 +545,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.TEXT_PRIMARY,
     marginBottom: 8,
   },
   modalText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.TEXT_SECONDARY,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
@@ -517,18 +558,18 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: COLORS.SUCCESS,
     marginTop: 8,
   },
   modalButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: COLORS.PRIMARY,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
   },
   modalButtonText: {
-    color: '#FFF',
+    color: COLORS.BACKGROUND,
     fontSize: 16,
     fontWeight: '600',
   },

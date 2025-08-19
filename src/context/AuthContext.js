@@ -36,20 +36,33 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log("Login attempt with:", { email, password: password ? "***" : undefined });
+      console.log("API URL:", `${API_BASE_URL}/auth/login`);
+      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
+      console.log("Response status:", response.status);
+      
       if (response.ok) {
         const { user, token } = await response.json();
         await storage.setItemAsync("authToken", token);
         setUser(user);
         return { success: true };
       } else {
-        const error = await response.json();
-        return { success: false, error: error.error || error.message || "Authentication failed" };
+        let errorMessage = "Authentication failed";
+        try {
+          const error = await response.json();
+          console.log("Error response:", error);
+          errorMessage = error.error || error.message || errorMessage;
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+          errorMessage = `Authentication failed (${response.status})`;
+        }
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -81,25 +94,57 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log("🔴 Logout function called");
     try {
+      console.log("🔴 Starting logout process...");
+      
       // Get stored OAuth tokens for revocation
-      const oauthTokens = await storage.getItemAsync("oauthTokens");
-      if (oauthTokens) {
-        const { provider, accessToken } = JSON.parse(oauthTokens);
-        if (provider === 'google') {
-          await oauthService.revokeToken(accessToken);
+      try {
+        const oauthTokens = await storage.getItemAsync("oauthTokens");
+        console.log("🔴 OAuth tokens:", oauthTokens ? "found" : "not found");
+        
+        if (oauthTokens) {
+          const { provider, accessToken } = JSON.parse(oauthTokens);
+          console.log("🔴 OAuth provider:", provider);
+          
+          if (provider === 'google') {
+            console.log("🔴 Revoking Google token...");
+            await oauthService.revokeToken(accessToken);
+          }
+          await storage.deleteItemAsync("oauthTokens");
+          console.log("🔴 OAuth tokens deleted");
         }
-        await storage.deleteItemAsync("oauthTokens");
+      } catch (oauthError) {
+        console.error("🔴 OAuth cleanup error:", oauthError);
+        // Continue with logout even if OAuth cleanup fails
       }
       
+      // Delete auth token
+      console.log("🔴 Deleting auth token...");
       await storage.deleteItemAsync("authToken");
+      console.log("🔴 Auth token deleted");
+      
+      // Clear user state
+      console.log("🔴 Setting user to null...");
       setUser(null);
+      console.log("🔴 Logout completed successfully");
+      
     } catch (error) {
-      console.error("Logout error:", error);
-      // Even if token revocation fails, still log out locally
-      await storage.deleteItemAsync("authToken");
-      await storage.deleteItemAsync("oauthTokens");
-      setUser(null);
+      console.error("🔴 Logout error:", error);
+      console.log("🔴 Attempting fallback cleanup...");
+      
+      // Fallback: force cleanup even if errors occur
+      try {
+        await storage.deleteItemAsync("authToken");
+        await storage.deleteItemAsync("oauthTokens");
+        setUser(null);
+        console.log("🔴 Fallback logout completed");
+      } catch (fallbackError) {
+        console.error("🔴 Fallback logout error:", fallbackError);
+        // Force logout by clearing user state regardless
+        setUser(null);
+        console.log("🔴 Force logout - user state cleared");
+      }
     }
   };
 
@@ -155,11 +200,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Simple logout for testing - bypasses OAuth cleanup
+  const simpleLogout = async () => {
+    console.log("🟣 Simple logout called");
+    try {
+      await storage.deleteItemAsync("authToken");
+      console.log("🟣 Token deleted");
+      setUser(null);
+      console.log("🟣 User set to null");
+    } catch (error) {
+      console.error("🟣 Simple logout error:", error);
+      // Force logout anyway
+      setUser(null);
+    }
+  };
+
   const value = { 
     user, 
     login, 
     register, 
     logout, 
+    simpleLogout,
     loading,
     loginWithGoogle,
     refreshTokenIfNeeded

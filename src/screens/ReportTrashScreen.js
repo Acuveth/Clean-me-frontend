@@ -160,26 +160,30 @@ const ReportTrashScreen = () => {
       formData.append('latitude', locationData.latitude.toString());
       formData.append('longitude', locationData.longitude.toString());
       formData.append('username', user.name || user.email);
-      formData.append('userId', user.id);
       
       // Add AI analysis data if available
       if (aiAnalysis) {
-        formData.append('description', aiAnalysis?.description || 'User-submitted trash report');
+        formData.append('aiDescription', aiAnalysis?.description || 'User-submitted trash report');
         formData.append('trashCount', (aiAnalysis?.trashCount || '1').toString());
         formData.append('trashTypes', JSON.stringify(aiAnalysis?.trashTypes || ['unspecified trash']));
         formData.append('severity', aiAnalysis?.severity || 'medium');
         formData.append('locationContext', aiAnalysis?.location_context || 'user-reported location');
       } else {
         // Fallback data if AI analysis failed
-        formData.append('description', 'User-submitted trash report');
+        formData.append('aiDescription', 'User-submitted trash report');
         formData.append('trashCount', '1');
         formData.append('trashTypes', JSON.stringify(['unspecified trash']));
         formData.append('severity', 'medium');
         formData.append('locationContext', 'user-reported location');
       }
+      
+      // Add standard fields required by backend
+      formData.append('description', aiAnalysis?.description || 'User-submitted trash report');
+      formData.append('trashType', aiAnalysis?.trashTypes?.[0] || 'mixed');
+      formData.append('size', aiAnalysis?.severity === 'high' ? 'large' : aiAnalysis?.severity === 'low' ? 'small' : 'medium');
 
       // Submit to backend
-      const response = await fetch(`${API_BASE_URL}/api/trash-reports`, {
+      const response = await fetch(`${API_BASE_URL}/trash/report`, {
         method: 'POST',
         body: formData,
         headers: {

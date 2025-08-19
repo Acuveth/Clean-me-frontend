@@ -6,49 +6,75 @@ import {
   TouchableOpacity, 
   View, 
   ScrollView,
-  Alert,
-  Share,
-  LinearGradient
+  Alert
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from "../config/constants";
 import { useAuth } from "../context/AuthContext";
+import ShareProgress from '../components/ShareProgress';
 
 const ProfileScreen = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, simpleLogout } = useAuth();
+  const navigation = useNavigation();
+  const { shareText } = ShareProgress();
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `Check out Trash Clean! I've helped clean up ${user?.trashCollected || 0} pieces of trash and earned ${user?.points || 0} points! 🌍♻️`,
-        title: 'Trash Clean App'
-      });
+      await shareText();
     } catch (error) {
       console.log('Error sharing:', error);
     }
   };
 
   const handleEditProfile = () => {
-    Alert.alert("Coming Soon", "Profile editing will be available in a future update!");
+    navigation.navigate('EditProfile');
   };
 
   const handleViewBadges = () => {
-    Alert.alert("Badges", "Badge system coming soon! Keep cleaning to unlock achievements! 🏆");
+    navigation.navigate('Achievements');
   };
 
   const handleSettings = () => {
-    Alert.alert("Settings", "Settings panel coming soon!");
+    navigation.navigate('Settings');
   };
 
   const confirmLogout = () => {
+    console.log("🟡 confirmLogout called");
+    console.log("🟡 Showing alert...");
+    
     Alert.alert(
       "Confirm Logout",
       "Are you sure you want to logout?",
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Logout", onPress: logout, style: "destructive" }
+        { 
+          text: "Cancel", 
+          style: "cancel",
+          onPress: () => console.log("🟡 User cancelled logout")
+        },
+        { 
+          text: "Logout", 
+          onPress: () => {
+            console.log("🟡 User confirmed logout - starting logout process");
+            handleLogoutConfirmed();
+          }, 
+          style: "destructive" 
+        }
       ]
     );
+  };
+
+  const handleLogoutConfirmed = async () => {
+    console.log("🟡 handleLogoutConfirmed called");
+    try {
+      console.log("🟡 Calling simple logout function...");
+      await simpleLogout();
+      console.log("🟡 Simple logout function completed");
+      // Navigation will be handled automatically by App.js when user becomes null
+    } catch (error) {
+      console.error('🟡 ProfileScreen logout error:', error);
+      Alert.alert('Error', 'Failed to logout. Please try again.');
+    }
   };
 
   const getUserLevel = (points) => {
@@ -86,14 +112,14 @@ const ProfileScreen = () => {
           <Text style={styles.statLabel}>Eco Points</Text>
         </View>
         <View style={styles.statCard}>
-          <MaterialIcons name="delete-outline" size={30} color={COLORS.INFO} />
-          <Text style={styles.statNumber}>{user?.trashCollected || 0}</Text>
-          <Text style={styles.statLabel}>Items Cleaned</Text>
+          <MaterialIcons name="cleaning-services" size={30} color={COLORS.INFO} />
+          <Text style={styles.statNumber}>{user?.totalCleanups || 0}</Text>
+          <Text style={styles.statLabel}>Cleanups</Text>
         </View>
         <View style={styles.statCard}>
-          <MaterialIcons name="workspace-premium" size={30} color={COLORS.WARNING} />
-          <Text style={styles.statNumber}>{Math.floor((user?.points || 0) / 100)}</Text>
-          <Text style={styles.statLabel}>Badges</Text>
+          <MaterialIcons name="add-location" size={30} color={COLORS.WARNING} />
+          <Text style={styles.statNumber}>{user?.totalReports || 0}</Text>
+          <Text style={styles.statLabel}>Reports</Text>
         </View>
       </View>
 
@@ -124,24 +150,6 @@ const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Impact Section */}
-      <View style={styles.impactContainer}>
-        <Text style={styles.sectionTitle}>🌍 Your Environmental Impact</Text>
-        <View style={styles.impactCard}>
-          <View style={styles.impactRow}>
-            <MaterialIcons name="co2" size={20} color={COLORS.SUCCESS} />
-            <Text style={styles.impactText}>~{Math.round((user?.points || 0) * 0.1)} kg CO₂ saved</Text>
-          </View>
-          <View style={styles.impactRow}>
-            <MaterialIcons name="water-drop" size={20} color={COLORS.INFO} />
-            <Text style={styles.impactText}>~{Math.round((user?.points || 0) * 0.5)} L water protected</Text>
-          </View>
-          <View style={styles.impactRow}>
-            <MaterialIcons name="pets" size={20} color={COLORS.WARNING} />
-            <Text style={styles.impactText}>{Math.floor((user?.points || 0) / 50)} wildlife helped</Text>
-          </View>
-        </View>
-      </View>
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
@@ -254,34 +262,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.TEXT_PRIMARY,
     marginLeft: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: 15,
-  },
-  impactContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  impactCard: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 15,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  impactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  impactText: {
-    fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
-    marginLeft: 10,
-    fontWeight: '500',
   },
   logoutButton: {
     flexDirection: 'row',

@@ -16,6 +16,9 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import ReportTrashScreen from './src/screens/ReportTrashScreen';
 import TrashDetailScreen from './src/screens/TrashDetailScreen';
 import PickupVerificationScreen from './src/screens/PickupVerificationScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
+import AchievementsScreen from './src/screens/AchievementsScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 // Context
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -74,6 +77,12 @@ const MainTabs = () => (
 const AppNavigator = () => {
   const { user } = useAuth();
   
+  // Debug user state changes
+  React.useEffect(() => {
+    console.log("🟢 App.js - User state changed:", user ? `Logged in as ${user.email}` : "Not logged in");
+    console.log("🟢 Current user object:", user);
+  }, [user]);
+  
   const darkTheme = {
     dark: true,
     colors: {
@@ -112,12 +121,19 @@ const AppNavigator = () => {
       }}>
         {user ? (
           <>
+            {console.log("🟢 Rendering authenticated screens for user:", user.email)}
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="TrashDetail" component={TrashDetailScreen} />
             <Stack.Screen name="PickupVerification" component={PickupVerificationScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="Achievements" component={AchievementsScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            {console.log("🟢 Rendering login screen - user is null")}
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
