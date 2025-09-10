@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { MaterialIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -6,7 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { store } from './src/store/store';
-import { COLORS } from './src/config/constants';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from './src/config/constants';
 
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -55,14 +56,16 @@ const MainTabs = () => (
         backgroundColor: COLORS.SURFACE,
         borderTopColor: COLORS.BORDER,
         borderTopWidth: 1,
-        paddingBottom: 5,
-        paddingTop: 5,
-        height: 65,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.lg : SPACING.sm,
+        paddingTop: SPACING.sm,
+        height: Platform.OS === 'ios' ? 85 : 70,
+        ...SHADOWS.sm,
       },
       tabBarLabelStyle: {
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 5,
+        fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+        fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+        marginBottom: Platform.OS === 'ios' ? SPACING.xs : 2,
+        letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
       },
       headerShown: false,
     })}

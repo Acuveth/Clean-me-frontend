@@ -7,13 +7,17 @@ import {
   TouchableOpacity, 
   ActivityIndicator,
   RefreshControl,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import { COLORS } from '../config/constants';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../config/constants';
 import { pickupVerificationService } from '../services/pickupVerification';
+import { Layout } from '../../components/ui/Layout';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 const PickupTrashScreen = () => {
   const navigation = useNavigation();
@@ -127,208 +131,380 @@ const PickupTrashScreen = () => {
   };
 
   const renderTrashItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.itemCard}
-      onPress={() => handlePickupItem(item)}
-    >
-      <View style={styles.itemHeader}>
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemDescription}>{item.description}</Text>
-          <View style={styles.itemMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={COLORS.TEXT_SECONDARY} />
-              <Text style={styles.metaText}>{item.reportedTime}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={14} color={COLORS.TEXT_SECONDARY} />
-              <Text style={styles.metaText}>{item.distance}</Text>
-            </View>
-          </View>
+    <Card variant="elevated" padding="large" style={styles.pickupCard}>
+      <View style={styles.cardHeader}>
+        <View style={styles.trashTypeIcon}>
+          <MaterialIcons 
+            name={getTrashTypeIcon(item.trashType)} 
+            size={24} 
+            color={COLORS.TEXT_SECONDARY} 
+          />
         </View>
-        <View style={styles.pointsBadge}>
-          <Text style={styles.pointsText}>{item.points}</Text>
-          <Text style={styles.pointsLabel}>pts</Text>
+        <View style={styles.pointsContainer}>
+          <View style={styles.pointsBadge}>
+            <Text style={styles.pointsText}>{item.points}</Text>
+          </View>
+          <Text style={styles.pointsLabel}>points</Text>
         </View>
       </View>
-      <TouchableOpacity 
-        style={styles.pickupButton}
+
+      <View style={styles.cardContent}>
+        <Text style={styles.trashDescription}>{item.description}</Text>
+        
+        <View style={styles.trashDetails}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailItem}>
+              <MaterialIcons name="schedule" size={16} color={COLORS.TEXT_TERTIARY} />
+              <Text style={styles.detailText}>{item.reportedTime}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <MaterialIcons name="location-on" size={16} color={COLORS.TEXT_TERTIARY} />
+              <Text style={styles.detailText}>{item.distance}</Text>
+            </View>
+          </View>
+          
+          {item.size && (
+            <View style={styles.detailRow}>
+              <View style={styles.detailItem}>
+                <MaterialIcons name="straighten" size={16} color={COLORS.TEXT_TERTIARY} />
+                <Text style={styles.detailText}>{item.size}</Text>
+              </View>
+              {item.severity && (
+                <View style={styles.detailItem}>
+                  <MaterialIcons name="priority-high" size={16} color={COLORS.TEXT_TERTIARY} />
+                  <Text style={styles.detailText}>{item.severity}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </View>
+
+      <Button
+        title="Start Cleanup"
         onPress={() => handlePickupItem(item)}
-      >
-        <MaterialIcons name="camera-alt" size={20} color={COLORS.BACKGROUND} />
-        <Text style={styles.pickupButtonText}>Start Pickup Verification</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+        variant="success"
+        size="large"
+        icon="camera-alt"
+        fullWidth
+        style={styles.pickupButton}
+      />
+    </Card>
   );
+
+  const getTrashTypeIcon = (trashType) => {
+    const iconMap = {
+      'plastic': 'local-drink',
+      'paper': 'description',
+      'metal': 'build',
+      'glass': 'wine-bar',
+      'organic': 'eco',
+      'electronic': 'electrical-services',
+      'hazardous': 'warning',
+      'general': 'delete'
+    };
+    return iconMap[trashType?.toLowerCase()] || 'delete';
+  };
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-        <Text style={styles.loadingText}>
-          {!userLocation ? 'Getting your location...' : 'Loading nearby trash...'}
-        </Text>
-      </View>
+      <Layout>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={COLORS.SUCCESS} />
+            <Text style={styles.loadingTitle}>
+              {!userLocation ? 'Finding your location' : 'Loading opportunities'}
+            </Text>
+            <Text style={styles.loadingSubtitle}>
+              {!userLocation ? 'We need your location to find nearby trash' : 'Discovering cleanup opportunities nearby'}
+            </Text>
+          </View>
+        </View>
+      </Layout>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Available Pickups</Text>
-        <Text style={styles.headerSubtitle}>
-          Help clean up and earn points!
-        </Text>
-      </View>
-
-      {trashItems.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <MaterialIcons name="check-circle" size={80} color={COLORS.SUCCESS} />
-          <Text style={styles.emptyTitle}>All Clear!</Text>
-          <Text style={styles.emptyText}>
-            No trash reported in your area. Check back later!
-          </Text>
+    <Layout scrollable={false} padding="none">
+      <View style={styles.container}>
+        {/* Clean Header */}
+        <View style={styles.modernHeader}>
+          <View style={styles.headerContent}>
+            <View style={styles.titleSection}>
+              <Text style={styles.mainTitle}>Cleanup Opportunities</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <MaterialIcons 
+                name="refresh" 
+                size={24} 
+                color={COLORS.TEXT_SECONDARY}
+                style={refreshing ? styles.refreshing : null}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={trashItems}
-          renderItem={renderTrashItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[COLORS.PRIMARY]}
-            />
-          }
-        />
-      )}
-    </View>
+
+        {/* Content Area */}
+        <View style={styles.contentArea}>
+          {trashItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Card variant="elevated" padding="large" style={styles.emptyCard}>
+                <View style={styles.emptyIcon}>
+                  <MaterialIcons name="eco" size={64} color={COLORS.SUCCESS} />
+                </View>
+                <Text style={styles.emptyTitle}>Area looks clean!</Text>
+                <Text style={styles.emptyDescription}>
+                  No cleanup opportunities found in your area right now. Check back later for new reports.
+                </Text>
+                <Button
+                  title="Refresh"
+                  onPress={onRefresh}
+                  variant="ghost"
+                  size="medium"
+                  icon="refresh"
+                  style={styles.emptyButton}
+                />
+              </Card>
+            </View>
+          ) : (
+            <>
+              <View style={styles.statsHeader}>
+                <Text style={styles.statsText}>
+                  {trashItems.length} opportunity{trashItems.length !== 1 ? 's' : ''} nearby
+                </Text>
+              </View>
+              
+              <FlatList
+                data={trashItems}
+                renderItem={renderTrashItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[COLORS.SUCCESS]}
+                    tintColor={COLORS.SUCCESS}
+                  />
+                }
+              />
+            </>
+          )}
+        </View>
+      </View>
+    </Layout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
   },
-  centerContainer: {
+  
+  // Loading States
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.BACKGROUND,
+    paddingHorizontal: SPACING.xl,
   },
-  header: {
-    backgroundColor: COLORS.PRIMARY,
-    padding: 20,
-    paddingTop: 50,
+  loadingContent: {
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  loadingTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
     color: COLORS.TEXT_PRIMARY,
-    marginBottom: 4,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
+    textAlign: 'center',
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: COLORS.TEXT_PRIMARY,
-    opacity: 0.9,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  listContent: {
-    padding: 16,
-  },
-  itemCard: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  itemInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  itemDescription: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: 8,
-  },
-  itemMeta: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 12,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  pointsBadge: {
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 50,
-    borderWidth: 1,
-    borderColor: COLORS.ACCENT,
-  },
-  pointsText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.ACCENT,
-  },
-  pointsLabel: {
-    fontSize: 10,
-    color: COLORS.ACCENT,
-  },
-  pickupButton: {
-    backgroundColor: COLORS.PRIMARY,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  pickupButtonText: {
-    color: COLORS.BACKGROUND,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.SUCCESS,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
+  loadingSubtitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
     color: COLORS.TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.relaxed * TYPOGRAPHY.FONT_SIZE.base,
+  },
+
+  // Modern Header
+  modernHeader: {
+    backgroundColor: COLORS.SURFACE,
+    paddingTop: SPACING.xxxl + SPACING.md,
+    paddingBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    ...SHADOWS.sm,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  titleSection: {
+    flex: 1,
+  },
+  mainTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
+    marginBottom: SPACING.xs,
+  },
+  subtitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+  refreshButton: {
+    padding: SPACING.sm,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.SURFACE_VARIANT,
+  },
+  refreshing: {
+    opacity: 0.5,
+  },
+
+  // Content Area
+  contentArea: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  statsHeader: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  statsText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_TERTIARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    textTransform: 'uppercase',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+  },
+
+  // List Content
+  listContent: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
+  },
+
+  // Pickup Cards
+  pickupCard: {
+    marginBottom: SPACING.md,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  trashTypeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.SURFACE_VARIANT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pointsContainer: {
+    alignItems: 'center',
+  },
+  pointsBadge: {
+    backgroundColor: COLORS.SUCCESS,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.round,
+    minWidth: 48,
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  pointsText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+  },
+  pointsLabel: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+    color: COLORS.TEXT_TERTIARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    textTransform: 'uppercase',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+  },
+
+  // Card Content
+  cardContent: {
+    marginBottom: SPACING.lg,
+  },
+  trashDescription: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: SPACING.md,
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.normal * TYPOGRAPHY.FONT_SIZE.md,
+  },
+  trashDetails: {
+    gap: SPACING.sm,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: SPACING.xs,
+  },
+  detailText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+
+  // Pickup Button
+  pickupButton: {
+    marginTop: SPACING.sm,
+  },
+
+  // Empty State
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    maxWidth: 320,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.SUCCESS + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  emptyTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    color: COLORS.TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.relaxed * TYPOGRAPHY.FONT_SIZE.base,
+    marginBottom: SPACING.lg,
+  },
+  emptyButton: {
+    minWidth: 120,
   },
 });
 

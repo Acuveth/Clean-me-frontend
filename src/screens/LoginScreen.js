@@ -1,21 +1,21 @@
 import React from 'react';
 import { MaterialIcons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from "../config/constants";
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from "../config/constants";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { Input } from "../../components/ui/Input";
+import { Layout } from "../../components/ui/Layout";
 
 const LoginScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -61,281 +61,232 @@ const LoginScreen = () => {
 
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <StatusBar style="light" backgroundColor={COLORS.PRIMARY} />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <MaterialIcons name="eco" size={60} color="white" />
-          <Text style={styles.appName}>Trash Clean</Text>
-          <Text style={styles.tagline}>Clean up the world together</Text>
+    <Layout scrollable safeArea={false} padding="none">
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <View style={styles.heroContent}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="eco" size={48} color={COLORS.SUCCESS} />
+            </View>
+            <Text style={styles.appName}>Trash Clean</Text>
+          </View>
         </View>
 
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>
-            {isLogin ? "Welcome Back!" : "Join the Movement!"}
-          </Text>
-
-          {!isLogin && (
-            <View style={styles.inputContainer}>
-              <MaterialIcons
-                name="person"
-                size={20}
-                color={COLORS.PRIMARY}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <MaterialIcons
-              name="email"
-              size={20}
-              color={COLORS.PRIMARY}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <MaterialIcons
-              name="lock"
-              size={20}
-              color={COLORS.PRIMARY}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.authButton, loading && styles.disabledButton]}
-            onPress={handleAuth}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <>
-                <MaterialIcons
-                  name={isLogin ? "login" : "person-add"}
-                  size={20}
-                  color="white"
-                />
-                <Text style={styles.authButtonText}>
-                  {isLogin ? "Sign In" : "Sign Up"}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* OAuth2 Login Options */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.googleButton, loading && styles.disabledButton]}
-            onPress={handleGoogleLogin}
-            disabled={loading}
-          >
-            <MaterialIcons name="g-translate" size={20} color="#DB4437" />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.toggleButton} onPress={toggleMode}>
-            <Text style={styles.toggleText}>
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+        {/* Form Section */}
+        <View style={styles.formSection}>
+          <Card variant="elevated" padding="large" style={styles.formCard}>
+            <Text style={styles.formTitle}>
+              {isLogin ? "Welcome Back" : "Join the Movement"}
             </Text>
-          </TouchableOpacity>
+            
+            <View style={styles.formContent}>
+              {!isLogin && (
+                <Input
+                  label="Full Name"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChangeText={setName}
+                  icon="person"
+                  variant="outlined"
+                  autoCapitalize="words"
+                  containerStyle={styles.inputSpacing}
+                />
+              )}
 
-          {/* Demo credentials for testing */}
-          <View style={styles.demoContainer}>
-            <Text style={styles.demoTitle}>Demo Credentials:</Text>
+              <Input
+                label="Email Address"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
+                icon="email"
+                variant="outlined"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                containerStyle={styles.inputSpacing}
+              />
+
+              <Input
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                icon="lock"
+                variant="outlined"
+                secureTextEntry
+                autoComplete="password"
+                containerStyle={styles.inputSpacing}
+              />
+
+              <Button
+                title={isLogin ? "Sign In" : "Sign Up"}
+                onPress={handleAuth}
+                variant="primary"
+                size="large"
+                icon={isLogin ? "login" : "person-add"}
+                loading={loading}
+                disabled={loading}
+                fullWidth
+                elevated
+                style={styles.primaryButton}
+              />
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <Button
+                title="Continue with Google"
+                onPress={handleGoogleLogin}
+                variant="secondary"
+                size="large"
+                icon="g-translate"
+                loading={loading}
+                disabled={loading}
+                fullWidth
+                style={styles.socialButton}
+              />
+
+              <TouchableOpacity style={styles.toggleButton} onPress={toggleMode}>
+                <Text style={styles.toggleText}>
+                  {isLogin
+                    ? "Don't have an account? Sign up"
+                    : "Already have an account? Sign in"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+
+          {/* Demo credentials */}
+          <Card variant="outlined" padding="medium" style={styles.demoCard}>
+            <Text style={styles.demoTitle}>Demo Credentials</Text>
             <Text style={styles.demoText}>Email: demo@trashclean.com</Text>
             <Text style={styles.demoText}>Password: demo123</Text>
-          </View>
+          </Card>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </Layout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 20,
+  heroSection: {
+    flex: 0.4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xxxl,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: 40,
+  heroContent: {
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.round,
     backgroundColor: COLORS.SURFACE,
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    ...SHADOWS.md,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: COLORS.PRIMARY,
-    marginTop: 10,
+    fontSize: TYPOGRAPHY.FONT_SIZE.xxxl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: SPACING.sm,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.FONT_SIZE.md,
     color: COLORS.TEXT_SECONDARY,
-    marginTop: 5,
+    textAlign: 'center',
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.relaxed * TYPOGRAPHY.FONT_SIZE.md,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
   },
-  formContainer: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 10,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+  formSection: {
+    flex: 0.6,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
+  },
+  formCard: {
+    marginBottom: SPACING.lg,
   },
   formTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 30,
+    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    borderRadius: 12,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    backgroundColor: COLORS.SURFACE_VARIANT,
+  formContent: {
+    gap: SPACING.sm,
   },
-  inputIcon: {
-    marginRight: 10,
+  inputSpacing: {
+    marginBottom: SPACING.md,
   },
-  input: {
-    flex: 1,
-    paddingVertical: 15,
-    fontSize: 16,
-    color: COLORS.TEXT_PRIMARY,
+  primaryButton: {
+    marginTop: SPACING.md,
+    marginBottom: SPACING.lg,
   },
-  authButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.PRIMARY,
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 10,
-    marginBottom: 15,
+  socialButton: {
+    marginBottom: SPACING.md,
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  authButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  toggleButton: {
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  toggleText: {
-    color: COLORS.PRIMARY,
-    fontSize: 16,
-  },
-  demoContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.PRIMARY,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: COLORS.PRIMARY,
-    marginBottom: 5,
-  },
-  demoText: {
-    fontSize: 12,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  // OAuth styles
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: SPACING.lg,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.BORDER,
+    backgroundColor: COLORS.DIVIDER,
   },
   dividerText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: 14,
-    paddingHorizontal: 15,
+    color: COLORS.TEXT_TERTIARY,
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+    paddingHorizontal: SPACING.md,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+    textTransform: 'uppercase',
   },
-  googleButton: {
-    flexDirection: 'row',
+  toggleButton: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginBottom: 20,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.sm,
   },
-  googleButtonText: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
+  toggleText: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+  demoCard: {
+    borderStyle: 'dashed',
+  },
+  demoTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: SPACING.xs,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+    textTransform: 'uppercase',
+  },
+  demoText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_TERTIARY,
+    fontFamily: 'monospace',
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.relaxed * TYPOGRAPHY.FONT_SIZE.sm,
   },
 });
 

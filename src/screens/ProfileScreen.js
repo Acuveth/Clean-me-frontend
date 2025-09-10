@@ -8,11 +8,13 @@ import {
   ScrollView,
   Alert
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useNavigation } from '@react-navigation/native';
-import { COLORS } from "../config/constants";
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from "../config/constants";
 import { useAuth } from "../context/AuthContext";
 import ShareProgress from '../components/ShareProgress';
+import { Layout } from '../../components/ui/Layout';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 const ProfileScreen = () => {
   const { user, logout, simpleLogout } = useAuth();
@@ -88,209 +90,335 @@ const ProfileScreen = () => {
   const userLevel = getUserLevel(user?.points || 0);
 
   return (
-    <ScrollView style={styles.container}>
-      <StatusBar style="light" />
-      
-      {/* Header Section */}
-      <View style={styles.header}>
-        <View style={styles.profileImageContainer}>
-          <MaterialIcons name="eco" size={50} color={COLORS.PRIMARY} />
+    <Layout scrollable padding="none">
+      <View style={styles.container}>
+        {/* Modern Profile Header */}
+        <View style={styles.heroSection}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <MaterialIcons name="eco" size={40} color={COLORS.SUCCESS} />
+              </View>
+              <View style={styles.levelIndicator}>
+                <Text style={styles.levelNumber}>{userLevel.level}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{user?.name || "Eco Warrior"}</Text>
+              <Text style={styles.userTitle}>{userLevel.title}</Text>
+              <Text style={styles.userEmail}>{user?.email || "user@example.com"}</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.userName}>{user?.name || "Eco Warrior"}</Text>
-        <Text style={styles.userEmail}>{user?.email || "user@example.com"}</Text>
-        <View style={styles.levelBadge}>
-          <MaterialIcons name="stars" size={16} color={COLORS.PRIMARY} />
-          <Text style={styles.levelText}>Level {userLevel.level} - {userLevel.title}</Text>
+
+        {/* Stats Grid */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsGrid}>
+            <Card variant="elevated" padding="medium" style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <View style={[styles.statIcon, { backgroundColor: COLORS.SUCCESS + '20' }]}>
+                  <MaterialIcons name="eco" size={24} color={COLORS.SUCCESS} />
+                </View>
+                <Text style={styles.statValue}>{user?.points || 0}</Text>
+              </View>
+              <Text style={styles.statLabel}>Eco Points</Text>
+              <Text style={styles.statTrend}>+12% this month</Text>
+            </Card>
+
+            <Card variant="elevated" padding="medium" style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <View style={[styles.statIcon, { backgroundColor: COLORS.TEXT_SECONDARY + '20' }]}>
+                  <MaterialIcons name="cleaning-services" size={24} color={COLORS.TEXT_SECONDARY} />
+                </View>
+                <Text style={styles.statValue}>{user?.totalCleanups || 0}</Text>
+              </View>
+              <Text style={styles.statLabel}>Cleanups</Text>
+              <Text style={styles.statTrend}>This year</Text>
+            </Card>
+
+            <Card variant="elevated" padding="medium" style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <View style={[styles.statIcon, { backgroundColor: COLORS.TEXT_SECONDARY + '20' }]}>
+                  <MaterialIcons name="add-location" size={24} color={COLORS.TEXT_SECONDARY} />
+                </View>
+                <Text style={styles.statValue}>{user?.totalReports || 0}</Text>
+              </View>
+              <Text style={styles.statLabel}>Reports</Text>
+              <Text style={styles.statTrend}>Total submitted</Text>
+            </Card>
+          </View>
+        </View>
+
+        {/* Action Menu */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Profile & Settings</Text>
+          
+          <Card variant="elevated" padding="none" style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+              <View style={styles.menuIcon}>
+                <MaterialIcons name="edit" size={20} color={COLORS.TEXT_SECONDARY} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Edit Profile</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_TERTIARY} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleViewBadges}>
+              <View style={styles.menuIcon}>
+                <MaterialIcons name="military-tech" size={20} color={COLORS.TEXT_SECONDARY} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Achievements</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_TERTIARY} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleShare}>
+              <View style={styles.menuIcon}>
+                <MaterialIcons name="share" size={20} color={COLORS.TEXT_SECONDARY} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Share Progress</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_TERTIARY} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+              <View style={styles.menuIcon}>
+                <MaterialIcons name="settings" size={20} color={COLORS.TEXT_SECONDARY} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Settings</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_TERTIARY} />
+            </TouchableOpacity>
+          </Card>
+        </View>
+
+        {/* Logout Section */}
+        <View style={styles.logoutSection}>
+          <Button
+            title="Sign Out"
+            onPress={confirmLogout}
+            variant="danger"
+            size="large"
+            icon="logout"
+            fullWidth
+          />
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.versionText}>Trash Clean v1.0.0</Text>
         </View>
       </View>
-
-      {/* Stats Section */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <MaterialIcons name="eco" size={30} color={COLORS.SUCCESS} />
-          <Text style={styles.statNumber}>{user?.points || 0}</Text>
-          <Text style={styles.statLabel}>Eco Points</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="cleaning-services" size={30} color={COLORS.INFO} />
-          <Text style={styles.statNumber}>{user?.totalCleanups || 0}</Text>
-          <Text style={styles.statLabel}>Cleanups</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="add-location" size={30} color={COLORS.WARNING} />
-          <Text style={styles.statNumber}>{user?.totalReports || 0}</Text>
-          <Text style={styles.statLabel}>Reports</Text>
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
-          <MaterialIcons name="edit" size={24} color={COLORS.TEXT_PRIMARY} />
-          <Text style={styles.actionText}>Edit Profile</Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={handleViewBadges}>
-          <MaterialIcons name="military-tech" size={24} color={COLORS.TEXT_PRIMARY} />
-          <Text style={styles.actionText}>Achievements</Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-          <MaterialIcons name="share" size={24} color={COLORS.TEXT_PRIMARY} />
-          <Text style={styles.actionText}>Share Progress</Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={handleSettings}>
-          <MaterialIcons name="settings" size={24} color={COLORS.TEXT_PRIMARY} />
-          <Text style={styles.actionText}>Settings</Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.TEXT_SECONDARY} />
-        </TouchableOpacity>
-      </View>
-
-
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
-        <MaterialIcons name="logout" size={24} color="white" />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Keep up the great work! 🌱</Text>
-        <Text style={styles.versionText}>Trash Clean v1.0.0</Text>
-      </View>
-    </ScrollView>
+    </Layout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
   },
-  header: {
+  
+  // Hero Section
+  heroSection: {
     backgroundColor: COLORS.SURFACE,
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    paddingTop: SPACING.xxxl + SPACING.lg,
+    paddingBottom: SPACING.xl,
+    ...SHADOWS.sm,
   },
-  profileImageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.SURFACE_VARIANT,
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: SPACING.lg,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.SUCCESS + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    ...SHADOWS.md,
+  },
+  levelIndicator: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 28,
+    height: 28,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.SUCCESS,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 3,
-    borderColor: COLORS.PRIMARY,
+    borderColor: COLORS.SURFACE,
+  },
+  levelNumber: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+  },
+  userInfo: {
+    flex: 1,
   },
   userName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
-    marginBottom: 5,
+    marginBottom: SPACING.xs,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
+  },
+  userTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.SUCCESS,
+    marginBottom: SPACING.xs,
+    textTransform: 'uppercase',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
   },
   userEmail: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
     color: COLORS.TEXT_SECONDARY,
-    marginBottom: 15,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
   },
-  levelBadge: {
+
+  // Stats Section
+  statsSection: {
+    backgroundColor: COLORS.BACKGROUND,
+    paddingTop: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+  },
+  statsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  levelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.PRIMARY,
-    marginLeft: 5,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    gap: SPACING.sm,
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.SURFACE,
-    alignItems: 'center',
-    paddingVertical: 20,
-    marginHorizontal: 5,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    alignItems: 'flex-start',
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: SPACING.sm,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
-    marginTop: 10,
-    marginBottom: 5,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
   },
   statLabel: {
-    fontSize: 12,
-    color: COLORS.TEXT_SECONDARY,
-    textAlign: 'center',
-  },
-  actionsContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.SURFACE,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-  },
-  actionText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
     color: COLORS.TEXT_PRIMARY,
-    marginLeft: 15,
+    marginBottom: SPACING.xs,
   },
-  logoutButton: {
+  statTrend: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+    color: COLORS.TEXT_TERTIARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+
+  // Menu Section
+  menuSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+  },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: SPACING.md,
+    textTransform: 'uppercase',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+  },
+  menuCard: {
+    overflow: 'hidden',
+  },
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.SURFACE_VARIANT,
     justifyContent: 'center',
-    backgroundColor: COLORS.ERROR,
-    marginHorizontal: 20,
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginBottom: 20,
+    alignItems: 'center',
+    marginRight: SPACING.md,
   },
-  logoutText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
+  menuContent: {
+    flex: 1,
   },
+  menuTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: SPACING.xs,
+  },
+  menuDescription: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: COLORS.DIVIDER,
+    marginLeft: SPACING.lg + 40 + SPACING.md,
+  },
+
+  // Logout Section
+  logoutSection: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
+  },
+
+  // Footer
   footer: {
     alignItems: 'center',
-    paddingBottom: 30,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
   },
   footerText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
     color: COLORS.TEXT_SECONDARY,
-    marginBottom: 5,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
   },
   versionText: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
     color: COLORS.TEXT_DISABLED,
+    textAlign: 'center',
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+    textTransform: 'uppercase',
   },
 });
 

@@ -40,49 +40,192 @@ export const IMAGE_CONFIG = {
   ALLOW_EDITING: true,
 };
 
-// Enhanced Dark Mode Colors
+// Minimalist Black, Gray & White Color Palette
 export const COLORS = {
-  // Primary colors with better contrast
-  PRIMARY: "#00E676", // Bright green
-  PRIMARY_DARK: "#00C853", // Darker green for pressed states
-  PRIMARY_LIGHT: "#69F0AE", // Lighter green for highlights
-  SECONDARY: "#1E88E5", // Blue
-  ACCENT: "#FF6B35", // Orange accent
+  // Primary colors - minimalist grayscale with neutral green accent
+  PRIMARY: "#6B7280", // Neutral gray for most elements
+  PRIMARY_DARK: "#4B5563", // Darker gray for pressed states
+  PRIMARY_LIGHT: "#9CA3AF", // Lighter gray for highlights
+  SECONDARY: "#6B7280", // Same neutral gray
+  ACCENT: "#16A34A", // Neutral green - used VERY sparingly for most important actions
   
-  // Status colors
-  SUCCESS: "#4CAF50",
-  WARNING: "#FFA726",
-  ERROR: "#EF5350",
-  INFO: "#42A5F5",
+  // Status colors - muted and minimal
+  SUCCESS: "#16A34A", // Neutral green (reserved for very important success states)
+  WARNING: "#F59E0B", // Minimal amber for warnings
+  ERROR: "#DC2626", // Red for errors only
+  INFO: "#6B7280", // Gray instead of blue
   
-  // Enhanced dark theme colors
-  BACKGROUND: "#0A0A0A", // Deeper black for better contrast
-  BACKGROUND_SECONDARY: "#121212", // Secondary background
-  SURFACE: "#1C1C1C", // Cards, components
-  SURFACE_VARIANT: "#2A2A2A", // Elevated surfaces
-  SURFACE_HIGH: "#333333", // Highest elevation
+  // Minimalist dark theme - pure blacks and grays
+  BACKGROUND: "#000000", // Pure black
+  BACKGROUND_SECONDARY: "#111111", // Very dark gray
+  SURFACE: "#1A1A1A", // Dark gray for cards
+  SURFACE_VARIANT: "#262626", // Slightly lighter for elevated surfaces
+  SURFACE_HIGH: "#404040", // Medium gray for highest elevation
   
-  // Text colors with better hierarchy
-  TEXT_PRIMARY: "#FFFFFF", // Main text
-  TEXT_SECONDARY: "#CCCCCC", // Secondary text (improved readability)
-  TEXT_TERTIARY: "#999999", // Tertiary text
-  TEXT_DISABLED: "#666666", // Disabled text
+  // Text hierarchy - clean blacks, grays, whites
+  TEXT_PRIMARY: "#FFFFFF", // Pure white
+  TEXT_SECONDARY: "#D1D5DB", // Light gray
+  TEXT_TERTIARY: "#9CA3AF", // Medium gray
+  TEXT_DISABLED: "#6B7280", // Darker gray for disabled
   
-  // Interactive elements
-  DIVIDER: "#333333",
-  BORDER: "#404040",
-  BORDER_LIGHT: "#555555",
+  // Interactive elements - minimal
+  DIVIDER: "#404040",
+  BORDER: "#525252",
+  BORDER_LIGHT: "#737373",
   
-  // Gradients for visual appeal
-  GRADIENT_PRIMARY: ["#00E676", "#00C853"],
-  GRADIENT_SURFACE: ["#1C1C1C", "#2A2A2A"],
-  GRADIENT_BACKGROUND: ["#0A0A0A", "#1C1C1C"],
+  // Minimalist gradients
+  GRADIENT_PRIMARY: ["#6B7280", "#4B5563"],
+  GRADIENT_SURFACE: ["#1A1A1A", "#262626"],
+  GRADIENT_BACKGROUND: ["#000000", "#111111"],
+  
+  // Button colors - mostly grayscale with ONE green accent
+  BUTTON: {
+    // Primary button - neutral gray for most actions
+    PRIMARY_BG: "#525252",
+    PRIMARY_HOVER: "#404040",
+    PRIMARY_TEXT: "#FFFFFF",
+    
+    // Secondary button - minimal outline
+    SECONDARY_BG: "transparent",
+    SECONDARY_BORDER: "#525252",
+    SECONDARY_HOVER: "#262626",
+    SECONDARY_TEXT: "#D1D5DB",
+    
+    // Success/Environmental button - ONLY for most important environmental actions
+    SUCCESS_BG: "#16A34A", // Neutral green - use sparingly!
+    SUCCESS_HOVER: "#15803D",
+    SUCCESS_TEXT: "#FFFFFF",
+    
+    // Danger button - minimal red
+    DANGER_BG: "#DC2626",
+    DANGER_HOVER: "#B91C1C",
+    DANGER_TEXT: "#FFFFFF",
+    
+    // Ghost button - completely minimal
+    GHOST_BG: "transparent",
+    GHOST_HOVER: "#111111",
+    GHOST_TEXT: "#9CA3AF",
+  },
   
   // Special colors
-  OVERLAY: "rgba(0, 0, 0, 0.7)",
-  SHADOW: "rgba(0, 0, 0, 0.5)",
+  OVERLAY: "rgba(0, 0, 0, 0.8)",
+  SHADOW: "rgba(0, 0, 0, 0.6)",
   
   // Legacy (for backwards compatibility)
-  LIGHT: "#F8F9FA",
-  DARK: "#0A0A0A",
+  LIGHT: "#FFFFFF",
+  DARK: "#000000",
+};
+
+// Professional Spacing System (8px base)
+export const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+  xxxl: 64,
+};
+
+// Typography Scale
+export const TYPOGRAPHY = {
+  // Font sizes
+  FONT_SIZE: {
+    xs: 11,
+    sm: 13,
+    base: 15,
+    md: 17,
+    lg: 20,
+    xl: 24,
+    xxl: 32,
+    xxxl: 40,
+    display: 48,
+  },
+  
+  // Font weights
+  FONT_WEIGHT: {
+    thin: "200",
+    light: "300",
+    regular: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
+    extrabold: "800",
+    black: "900",
+  },
+  
+  // Line heights
+  LINE_HEIGHT: {
+    tight: 1.2,
+    normal: 1.5,
+    relaxed: 1.75,
+    loose: 2,
+  },
+  
+  // Letter spacing
+  LETTER_SPACING: {
+    tight: -0.5,
+    normal: 0,
+    wide: 0.5,
+    wider: 1,
+    widest: 2,
+  },
+};
+
+// Border Radius
+export const RADIUS = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 28,
+  round: 999,
+};
+
+// Shadow Presets
+export const SHADOWS = {
+  xs: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sm: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  md: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  lg: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  xl: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+};
+
+// Animation Durations
+export const ANIMATION = {
+  fast: 200,
+  normal: 300,
+  slow: 500,
+  verySlow: 800,
 };

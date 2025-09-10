@@ -213,9 +213,9 @@ const PickupVerificationScreen = () => {
           </View>
           <Text style={styles.modalTitle}>Pickup Verified!</Text>
           <Text style={styles.modalText}>
-            Great job! You've successfully picked up the trash.
+            Pickup verification complete.
           </Text>
-          <Text style={styles.pointsText}>+10 Points Earned!</Text>
+          <Text style={styles.pointsText}>+10 Points</Text>
         </View>
       </View>
     </Modal>

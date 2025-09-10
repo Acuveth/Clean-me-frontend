@@ -7,16 +7,14 @@ const ShareProgress = () => {
 
   const shareText = async () => {
     try {
-      const message = `🌍 I'm making a difference with Trash Clean! 
+      const message = `Trash Clean Progress:
       
-🏆 ${user?.points || 0} points earned
-🗑️ ${user?.totalCleanups || 0} trash items cleaned up
-📍 ${user?.totalReports || 0} locations reported
-${user?.streakDays ? `🔥 ${user.streakDays} day streak!` : ''}
+${user?.points || 0} points
+${user?.totalCleanups || 0} cleanups completed
+${user?.totalReports || 0} locations reported
+${user?.streakDays ? `${user.streakDays} day streak` : ''}
 
-Join me in cleaning up our environment! 💚
-
-#TrashClean #Environment #CleanUp #MakeADifference`;
+#TrashClean`;
 
       const result = await Share.share({
         message,
@@ -41,17 +39,15 @@ Join me in cleaning up our environment! 💚
   const shareProgressCard = async () => {
     try {
       // Share progress as formatted text instead of image
-      const progressMessage = `📊 My Trash Clean Progress Card 📊
+      const progressMessage = `Trash Clean Progress:
 
-🏆 Level: ${user?.rank || 'Beginner'}
-⭐ Points: ${user?.points || 0}
-🗑️ Cleanups: ${user?.totalCleanups || 0}
-📍 Reports: ${user?.totalReports || 0}
-${user?.streakDays ? `🔥 ${user.streakDays} day streak!` : '🔥 Building my streak!'}
+Level: ${user?.rank || 'Beginner'}
+Points: ${user?.points || 0}
+Cleanups: ${user?.totalCleanups || 0}
+Reports: ${user?.totalReports || 0}
+${user?.streakDays ? `${user.streakDays} day streak` : 'Building streak'}
 
-Making our world cleaner, one pickup at a time! 🌍♻️
-
-Join me on Trash Clean! #TrashClean #Environment #CleanUp`;
+#TrashClean`;
 
       const result = await Share.share({
         message: progressMessage,
@@ -69,16 +65,13 @@ Join me on Trash Clean! #TrashClean #Environment #CleanUp`;
 
   const shareAchievement = async (achievement) => {
     try {
-      const message = `🏆 Achievement Unlocked! 
+      const message = `Achievement: ${achievement.title}
       
-"${achievement.title}"
 ${achievement.description}
 
-⭐ ${achievement.points} points earned!
+${achievement.points} points earned
 
-Making a difference with Trash Clean! 🌍♻️
-
-#TrashClean #Achievement #Environment #CleanUp`;
+#TrashClean`;
 
       const result = await Share.share({
         message,
@@ -98,15 +91,12 @@ Making a difference with Trash Clean! 🌍♻️
     try {
       const { pointsEarned = 0, location = '', trashType = 'trash' } = cleanupData;
       
-      const message = `🎉 Just completed another cleanup! 
+      const message = `Cleanup completed
       
-🗑️ Picked up ${trashType} ${location ? `at ${location}` : ''}
-⭐ Earned ${pointsEarned} points!
-🌍 Every small action makes a big difference!
+Picked up ${trashType} ${location ? `at ${location}` : ''}
+Earned ${pointsEarned} points
 
-Join me in cleaning up our environment with Trash Clean! 💚
-
-#TrashClean #Environment #CleanUp #CommunityService`;
+#TrashClean`;
 
       const result = await Share.share({
         message,
@@ -124,15 +114,13 @@ Join me in cleaning up our environment with Trash Clean! 💚
 
   const shareLeaderboardPosition = async (rank, points) => {
     try {
-      const message = `🏅 Check out my Trash Clean leaderboard position!
+      const message = `Leaderboard Position:
       
-📊 Rank: #${rank}
-⭐ Points: ${points}
-🌟 ${getRankTitle(rank)} status achieved!
+Rank: #${rank}
+Points: ${points}
+${getRankTitle(rank)} status
 
-Every cleanup counts! Join me in making our world cleaner! 🌍♻️
-
-#TrashClean #Leaderboard #Environment #CleanUp`;
+#TrashClean`;
 
       const result = await Share.share({
         message,
@@ -150,18 +138,16 @@ Every cleanup counts! Join me in making our world cleaner! 🌍♻️
 
   const shareAppInvite = async () => {
     try {
-      const message = `🌍 Join me in making a difference!
+      const message = `Trash Clean App
 
-I'm using Trash Clean to help clean up our environment and it's amazing! 
+Report trash locations
+Complete cleanup missions
+Earn points and achievements
+Join the community
 
-✨ Report trash locations
-🗑️ Complete cleanup missions
-🏆 Earn points and achievements
-👥 Join a community of eco-warriors
+Download Trash Clean
 
-Download Trash Clean and let's clean up our world together! 💚
-
-#TrashClean #Environment #CleanUp #MakeADifference`;
+#TrashClean`;
 
       const result = await Share.share({
         message,
