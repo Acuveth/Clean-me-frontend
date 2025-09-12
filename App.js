@@ -50,7 +50,7 @@ const MainTabs = () => (
         
         return <MaterialIcons name={iconName} size={size} color={color} />;
       },
-      tabBarActiveTintColor: COLORS.PRIMARY,
+      tabBarActiveTintColor: '#FFFFFF',
       tabBarInactiveTintColor: COLORS.TEXT_DISABLED,
       tabBarStyle: {
         backgroundColor: COLORS.SURFACE,

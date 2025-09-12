@@ -7,7 +7,7 @@ const API_URL = getAPIEndpoint();
 class PickupVerificationService {
   async verifyPickup(verificationData) {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await SecureStore.getItemAsync('authToken');
       
       const formData = new FormData();
       formData.append('trashId', verificationData.trashId);
@@ -82,7 +82,7 @@ class PickupVerificationService {
 
   async getTrashItemsNearby(location, radius = 100) {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await SecureStore.getItemAsync('authToken');
       
       const response = await axios.get(`${API_URL}/trash/nearby`, {
         params: {
@@ -104,7 +104,7 @@ class PickupVerificationService {
 
   async reportPickupIssue(trashId, issueType, description) {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await SecureStore.getItemAsync('authToken');
       
       const response = await axios.post(
         `${API_URL}/trash/${trashId}/report-issue`,

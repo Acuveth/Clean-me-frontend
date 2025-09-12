@@ -2,34 +2,68 @@ import React from 'react';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Dimensions,
 } from "react-native";
 import { WebView } from 'react-native-webview';
 import { useDispatch, useSelector } from "react-redux";
-import { COLORS, MAP_DEFAULTS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from "../config/constants";
-import { SECRETS } from "../config/secrets";
+import { COLORS, MAP_DEFAULTS, SPACING, TYPOGRAPHY, API_BASE_URL } from "../config/constants";
 import { fetchTrashReports } from "../store/trashSlice";
-import { Button } from "../../components/ui/Button";
+import storage from "../utils/storage";
 
 const HomeScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState(null);
   const dispatch = useDispatch();
   const { reports } = useSelector((state) => state.trash);
+  const autoRefreshInterval = useRef(null);
+  const webViewRef = useRef(null);
 
   useEffect(() => {
     getCurrentLocation();
     dispatch(fetchTrashReports());
+    fetchMapConfig();
+    startAutoRefresh();
+    
+    return () => {
+      if (autoRefreshInterval.current) {
+        clearInterval(autoRefreshInterval.current);
+      }
+    };
   }, [dispatch]);
+
+  const startAutoRefresh = () => {
+    // Auto-refresh every 5 minutes
+    autoRefreshInterval.current = setInterval(() => {
+      dispatch(fetchTrashReports());
+      // Reload the WebView to update the map
+      if (webViewRef.current) {
+        webViewRef.current.reload();
+      }
+    }, 300000); // 5 minutes = 300,000 milliseconds
+  };
+
+  const fetchMapConfig = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/maps/config`);
+      if (response.ok) {
+        const config = await response.json();
+        console.log("Map config fetched, API key:", config.apiKey ? "Present" : "Missing");
+        setGoogleMapsApiKey(config.apiKey);
+      } else {
+        console.error("Failed to fetch map config, status:", response.status);
+      }
+    } catch (error) {
+      console.error("Failed to fetch map config:", error);
+    }
+  };
 
   const getCurrentLocation = async () => {
     try {
@@ -45,9 +79,11 @@ const HomeScreen = ({ navigation }) => {
         return;
       }
 
-      // Get current location
+      // Get current location with timeout and optimized accuracy
       let currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 10000,
+        maximumAge: 30000,
       });
 
       setLocation({
@@ -59,7 +95,14 @@ const HomeScreen = ({ navigation }) => {
       setLoading(false);
     } catch (error) {
       console.error("Location error:", error);
-      Alert.alert("Error", "Unable to get current location");
+      Alert.alert("Error", "Unable to get current location. Showing Ljubljana, Slovenia.");
+      // Default to Ljubljana coordinates when location fails
+      setLocation({
+        latitude: 46.0569,
+        longitude: 14.5058,
+        latitudeDelta: MAP_DEFAULTS.LATITUDE_DELTA,
+        longitudeDelta: MAP_DEFAULTS.LONGITUDE_DELTA,
+      });
       setLoading(false);
     }
   };
@@ -71,6 +114,10 @@ const HomeScreen = ({ navigation }) => {
   const refreshLocation = () => {
     setLoading(true);
     getCurrentLocation();
+    dispatch(fetchTrashReports());
+    if (webViewRef.current) {
+      webViewRef.current.reload();
+    }
   };
 
   // Generate Google Maps HTML with markers
@@ -97,6 +144,23 @@ const HomeScreen = ({ navigation }) => {
             margin: 0;
             padding: 0;
           }
+          /* Hide Google logo and copyright */
+          .gm-style .gmnoprint,
+          .gm-style .gm-style-cc,
+          .gm-style .gmnoscreen,
+          .gm-bundled-control,
+          .gm-fullscreen-control,
+          .gmnoprint,
+          a[href^="https://maps.google.com/maps"],
+          a[href^="https://www.google.com/maps"],
+          .gm-style-cc {
+            display: none !important;
+          }
+          /* Hide keyboard shortcuts */
+          .gm-style .gm-style-mtc,
+          .gm-style .gm-style-cc {
+            display: none !important;
+          }
         </style>
       </head>
       <body>
@@ -104,51 +168,180 @@ const HomeScreen = ({ navigation }) => {
         <script>
           function initMap() {
             const userLocation = {
-              lat: ${location?.latitude || 37.7749},
-              lng: ${location?.longitude || -122.4194}
+              lat: ${location?.latitude || 46.0569},
+              lng: ${location?.longitude || 14.5058}
             };
 
             const map = new google.maps.Map(document.getElementById("map"), {
-              zoom: 13,
+              zoom: 16,
               center: userLocation,
+              mapTypeControl: false,
+              zoomControl: false,
+              streetViewControl: false,
+              scaleControl: false,
+              rotateControl: false,
+              fullscreenControl: false,
+              keyboardShortcuts: false,
+              disableDefaultUI: true,
               styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                {
+                  featureType: "administrative.locality",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#d59563" }]
+                },
+                {
+                  featureType: "poi",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#d59563" }]
+                },
                 {
                   featureType: "poi",
                   elementType: "labels",
                   stylers: [{ visibility: "off" }]
+                },
+                {
+                  featureType: "poi.park",
+                  elementType: "geometry",
+                  stylers: [{ color: "#263c3f" }]
+                },
+                {
+                  featureType: "poi.park",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#6b9a76" }]
+                },
+                {
+                  featureType: "road",
+                  elementType: "geometry",
+                  stylers: [{ color: "#38414e" }]
+                },
+                {
+                  featureType: "road",
+                  elementType: "geometry.stroke",
+                  stylers: [{ color: "#212a37" }]
+                },
+                {
+                  featureType: "road",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#9ca5b3" }]
+                },
+                {
+                  featureType: "road.highway",
+                  elementType: "geometry",
+                  stylers: [{ color: "#746855" }]
+                },
+                {
+                  featureType: "road.highway",
+                  elementType: "geometry.stroke",
+                  stylers: [{ color: "#1f2835" }]
+                },
+                {
+                  featureType: "road.highway",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#f3d19c" }]
+                },
+                {
+                  featureType: "transit",
+                  elementType: "geometry",
+                  stylers: [{ color: "#2f3948" }]
+                },
+                {
+                  featureType: "transit.station",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#d59563" }]
+                },
+                {
+                  featureType: "water",
+                  elementType: "geometry",
+                  stylers: [{ color: "#17263c" }]
+                },
+                {
+                  featureType: "water",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#515c6d" }]
+                },
+                {
+                  featureType: "water",
+                  elementType: "labels.text.stroke",
+                  stylers: [{ color: "#17263c" }]
                 }
               ]
             });
 
-            // Add user location marker
+            // Add user location marker with bigger, better design
             new google.maps.Marker({
               position: userLocation,
               map: map,
               title: "Your Location",
               icon: {
                 url: 'data:image/svg+xml;base64,' + btoa(\`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="#6B7280">
-                    <circle cx="12" cy="12" r="8" stroke="white" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="3" fill="white"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
+                    <!-- Outer pulse ring -->
+                    <circle cx="35" cy="35" r="32" fill="none" stroke="#3B82F6" stroke-width="3" opacity="0.2">
+                      <animate attributeName="r" values="32;35;32" dur="2s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" values="0.2;0.1;0.2" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <!-- Drop shadow -->
+                    <circle cx="35" cy="37" r="22" fill="#000000" opacity="0.15"/>
+                    <!-- Main location circle -->
+                    <circle cx="35" cy="35" r="22" fill="#3B82F6" stroke="white" stroke-width="4"/>
+                    <!-- Inner white circle -->
+                    <circle cx="35" cy="35" r="15" fill="white" opacity="0.9"/>
+                    <!-- Center blue dot -->
+                    <circle cx="35" cy="35" r="6" fill="#3B82F6"/>
+                    <!-- Crosshairs for GPS precision -->
+                    <line x1="35" y1="13" x2="35" y2="19" stroke="#3B82F6" stroke-width="2"/>
+                    <line x1="35" y1="51" x2="35" y2="57" stroke="#3B82F6" stroke-width="2"/>
+                    <line x1="13" y1="35" x2="19" y2="35" stroke="#3B82F6" stroke-width="2"/>
+                    <line x1="51" y1="35" x2="57" y2="35" stroke="#3B82F6" stroke-width="2"/>
                   </svg>
                 \`),
-                scaledSize: new google.maps.Size(30, 30),
-                anchor: new google.maps.Point(15, 15)
+                scaledSize: new google.maps.Size(70, 70),
+                anchor: new google.maps.Point(35, 35)
               }
             });
 
-            // Add trash location markers
+            // Add trash location markers with big circular icons
             const trashMarkers = ${JSON.stringify(markers)};
             trashMarkers.forEach(marker => {
               const markerIcon = marker.status === 'pending' ? 
                 'data:image/svg+xml;base64,' + btoa(\`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="35" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+                    <!-- Drop shadow circle -->
+                    <circle cx="30" cy="32" r="25" fill="#000000" opacity="0.15"/>
+                    <!-- Outer glow ring -->
+                    <circle cx="30" cy="30" r="28" fill="none" stroke="#EF4444" stroke-width="2" opacity="0.3"/>
+                    <!-- Main circle background -->
+                    <circle cx="30" cy="30" r="25" fill="#EF4444" stroke="white" stroke-width="3"/>
+                    <!-- Inner circle for contrast -->
+                    <circle cx="30" cy="30" r="20" fill="#ffffff" opacity="0.9"/>
+                    <!-- Trash can icon -->
+                    <g transform="translate(20, 18)">
+                      <rect x="3" y="8" width="14" height="18" rx="2" fill="#EF4444" stroke="#EF4444" stroke-width="1"/>
+                      <rect x="1" y="6" width="18" height="3" rx="1.5" fill="#EF4444"/>
+                      <rect x="6" y="2" width="8" height="4" rx="1" fill="#EF4444"/>
+                      <line x1="8" y1="12" x2="8" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="12" y1="12" x2="12" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="16" y1="12" x2="16" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </g>
                   </svg>
                 \`) :
                 'data:image/svg+xml;base64,' + btoa(\`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="35" viewBox="0 0 24 24" fill="#16A34A">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+                    <!-- Drop shadow circle -->
+                    <circle cx="30" cy="32" r="25" fill="#000000" opacity="0.15"/>
+                    <!-- Outer glow ring -->
+                    <circle cx="30" cy="30" r="28" fill="none" stroke="#16A34A" stroke-width="2" opacity="0.3"/>
+                    <!-- Main circle background -->
+                    <circle cx="30" cy="30" r="25" fill="#16A34A" stroke="white" stroke-width="3"/>
+                    <!-- Inner circle for contrast -->
+                    <circle cx="30" cy="30" r="20" fill="#ffffff" opacity="0.9"/>
+                    <!-- Large checkmark icon -->
+                    <g transform="translate(15, 15)">
+                      <path d="M8 15l7 7L30 7" stroke="#16A34A" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
                   </svg>
                 \`);
 
@@ -158,8 +351,8 @@ const HomeScreen = ({ navigation }) => {
                 title: marker.title,
                 icon: {
                   url: markerIcon,
-                  scaledSize: new google.maps.Size(25, 35),
-                  anchor: new google.maps.Point(12, 35)
+                  scaledSize: new google.maps.Size(60, 60),
+                  anchor: new google.maps.Point(30, 30)
                 }
               });
 
@@ -173,7 +366,7 @@ const HomeScreen = ({ navigation }) => {
           }
         </script>
         <script async defer 
-          src="https://maps.googleapis.com/maps/api/js?key=${SECRETS.GOOGLE_MAPS_API_KEY}&callback=initMap">
+          src="https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&callback=initMap">
         </script>
       </body>
     </html>`;
@@ -181,11 +374,16 @@ const HomeScreen = ({ navigation }) => {
 
   // Google Maps View Component
   const GoogleMapsView = () => {
-    if (!location) {
+    if (!location || !googleMapsApiKey) {
       return (
         <View style={styles.mapPlaceholder}>
           <MaterialIcons name="map" size={60} color="#ccc" />
-          <Text style={styles.placeholderText}>Loading map...</Text>
+          <Text style={styles.placeholderText}>
+            {!location ? "Getting location..." : "Loading map config..."}
+          </Text>
+          <Text style={styles.debugText}>
+            Location: {location ? "✓" : "✗"} | API Key: {googleMapsApiKey ? "✓" : "✗"}
+          </Text>
         </View>
       );
     }
@@ -193,6 +391,7 @@ const HomeScreen = ({ navigation }) => {
     return (
       <View style={styles.mapContainer}>
         <WebView
+          ref={webViewRef}
           source={{ html: generateMapHTML() }}
           style={styles.webMap}
           javaScriptEnabled={true}
@@ -209,23 +408,24 @@ const HomeScreen = ({ navigation }) => {
           }}
         />
         
-        {/* Modern Floating Action Buttons */}
+        {/* Floating Action Buttons */}
         <View style={styles.floatingActions}>
-          <Button
-            title=""
+          <TouchableOpacity 
+            style={[styles.fabButton, { backgroundColor: COLORS.BUTTON.SUCCESS_BG, justifyContent: 'center', alignItems: 'center' }]}
             onPress={() => navigation.navigate('Report')}
-            variant="floating"
-            icon="add-location"
-            style={styles.fabPrimary}
-          />
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="add" size={28} color={COLORS.TEXT_PRIMARY} />
+          </TouchableOpacity>
           
-          <Button
-            title=""
+          <TouchableOpacity 
+            style={[styles.fabButton, { backgroundColor: COLORS.BUTTON.PRIMARY_BG, justifyContent: 'center', alignItems: 'center' }]}
             onPress={() => navigation.navigate('Pickup')}
-            variant="floating"
-            icon="cleaning-services"
-            style={[styles.fabSecondary, { backgroundColor: COLORS.BUTTON.PRIMARY_BG }]}
-          />
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="delete" size={28} color={COLORS.TEXT_PRIMARY} />
+          </TouchableOpacity>
+          
         </View>
       </View>
     );
@@ -249,92 +449,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-
-      {/* Enhanced Modern Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>Trash Clean</Text>
-            <Text style={styles.headerSubtitle}>Community Environmental Dashboard</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={refreshLocation}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="refresh" size={20} color={COLORS.TEXT_SECONDARY} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Welcome Banner */}
-      <View style={styles.welcomeSection}>
-        <View style={styles.welcomeBanner}>
-          <View style={styles.welcomeIcon}>
-            <MaterialIcons name="eco" size={24} color={COLORS.SUCCESS} />
-          </View>
-          <View style={styles.welcomeText}>
-            <Text style={styles.welcomeTitle}>Environmental Impact Dashboard</Text>
-            <Text style={styles.welcomeDescription}>
-              Real-time cleanup opportunities in your area
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Google Maps View */}
       <GoogleMapsView />
-
-      {/* Enhanced Stats Section */}
-      <View style={styles.statsSection}>
-        <View style={styles.statsHeader}>
-          <Text style={styles.statsTitle}>Community Impact</Text>
-          <Text style={styles.statsSubtitle}>Real-time environmental data</Text>
-        </View>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statCardContent}>
-              <View style={[styles.statIconContainer, { backgroundColor: COLORS.ERROR + '20' }]}>
-                <MaterialIcons name="report-problem" size={20} color={COLORS.ERROR} />
-              </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statNumber}>
-                  {reports.filter((r) => r.status === "pending").length}
-                </Text>
-                <Text style={styles.statLabel}>Needs Cleanup</Text>
-              </View>
-            </View>
-          </View>
-          
-          <View style={styles.statCard}>
-            <View style={styles.statCardContent}>
-              <View style={[styles.statIconContainer, { backgroundColor: COLORS.SUCCESS + '20' }]}>
-                <MaterialIcons name="check-circle" size={20} color={COLORS.SUCCESS} />
-              </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statNumber}>
-                  {reports.filter((r) => r.status === "cleaned").length}
-                </Text>
-                <Text style={styles.statLabel}>Cleaned Up</Text>
-              </View>
-            </View>
-          </View>
-          
-          <View style={styles.statCard}>
-            <View style={styles.statCardContent}>
-              <View style={[styles.statIconContainer, { backgroundColor: COLORS.TEXT_SECONDARY + '20' }]}>
-                <MaterialIcons name="insights" size={20} color={COLORS.TEXT_SECONDARY} />
-              </View>
-              <View style={styles.statTextContainer}>
-                <Text style={styles.statNumber}>{reports.length}</Text>
-                <Text style={styles.statLabel}>Total Reports</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-        
-      </View>
     </View>
   );
 };
@@ -361,77 +476,6 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     textAlign: "center",
     letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
-  },
-  header: {
-    backgroundColor: COLORS.SURFACE,
-    paddingTop: SPACING.xxxl + SPACING.md,
-    paddingBottom: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-    ...SHADOWS.sm,
-    zIndex: 1,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.TEXT_PRIMARY,
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
-    marginBottom: SPACING.xs,
-  },
-  headerSubtitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
-  },
-  refreshButton: {
-    padding: SPACING.md,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    ...SHADOWS.xs,
-  },
-
-  // Welcome Section
-  welcomeSection: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-  },
-  welcomeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.SURFACE,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.SUCCESS,
-    ...SHADOWS.sm,
-  },
-  welcomeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.SUCCESS + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  welcomeText: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.xs,
-  },
-  welcomeDescription: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    lineHeight: TYPOGRAPHY.LINE_HEIGHT.normal * TYPOGRAPHY.FONT_SIZE.sm,
   },
   mapContainer: {
     flex: 1,
@@ -461,127 +505,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: SPACING.md,
   },
-  fabPrimary: {
-    marginBottom: SPACING.sm,
+  fabButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  fabSecondary: {
-  },
-  markerContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.round,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "white",
-  },
-  noLocationContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: SPACING.lg,
-  },
-  noLocationText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
-    color: COLORS.TEXT_SECONDARY,
-    marginTop: SPACING.md,
-    textAlign: "center",
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-    lineHeight: TYPOGRAPHY.LINE_HEIGHT.relaxed * TYPOGRAPHY.FONT_SIZE.md,
-  },
-  retryButton: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.sm,
-    marginTop: SPACING.md,
-    ...SHADOWS.xs,
-  },
-  retryButtonText: {
-    color: "white",
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    fontSize: TYPOGRAPHY.FONT_SIZE.base,
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
-  },
-  statsSection: {
-    backgroundColor: COLORS.SURFACE,
-    paddingVertical: SPACING.xl,
-    paddingHorizontal: SPACING.lg,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.BORDER,
-    ...SHADOWS.lg,
-  },
-  statsHeader: {
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  statsTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.xs,
-  },
-  statsSubtitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "stretch",
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    ...SHADOWS.xs,
-  },
-  statCardContent: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 80,
-  },
-  statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  statTextContainer: {
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xl,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.TEXT_PRIMARY,
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
-    marginBottom: SPACING.xs,
-  },
-  statLabel: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    textTransform: "uppercase",
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
-    textAlign: "center",
-  },
-  impactFooter: {
-    alignItems: 'center',
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.DIVIDER,
-  },
-  impactText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_TERTIARY,
-    textAlign: 'center',
-    fontStyle: 'italic',
+  debugText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
   },
 });
 

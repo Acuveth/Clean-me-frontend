@@ -139,7 +139,9 @@ const ReportTrashScreen = () => {
       }
 
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 10000,
+        maximumAge: 30000,
       });
 
       setLocationData(location.coords);

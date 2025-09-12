@@ -166,6 +166,11 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getIconSize = (): number => {
+    // Special case for floating buttons - make icons larger
+    if (variant === 'floating') {
+      return 28;
+    }
+    
     const iconSizes: Record<ButtonSize, number> = {
       small: 16,
       medium: 20,
@@ -182,7 +187,7 @@ export const Button: React.FC<ButtonProps> = ({
       success: COLORS.BUTTON.SUCCESS_TEXT,
       danger: COLORS.BUTTON.DANGER_TEXT,
       ghost: COLORS.TEXT_SECONDARY,
-      floating: COLORS.BUTTON.SUCCESS_TEXT,
+      floating: COLORS.TEXT_PRIMARY, // Use white text for floating buttons
     };
     return iconColors[variant];
   };

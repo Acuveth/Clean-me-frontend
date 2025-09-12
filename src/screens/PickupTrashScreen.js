@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -99,7 +100,7 @@ const PickupTrashScreen = () => {
         reportedTime: formatReportedTime(item.reportedAt),
         distance: `${(item.distance / 1000).toFixed(1)} km`,
         points: item.points || 10,
-        imageUrl: item.imageUrl,
+        imageUrl: item.imageUrl || `https://picsum.photos/400/300?random=${item.id}`, // Fallback to placeholder
         trashType: item.trashType,
         size: item.size,
         severity: item.severity,
@@ -121,6 +122,7 @@ const PickupTrashScreen = () => {
     loadTrashItems();
   };
 
+
   const handlePickupItem = (item) => {
     navigation.navigate('PickupVerification', {
       trashId: item.id,
@@ -131,24 +133,42 @@ const PickupTrashScreen = () => {
   };
 
   const renderTrashItem = ({ item }) => (
-    <Card variant="elevated" padding="large" style={styles.pickupCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.trashTypeIcon}>
-          <MaterialIcons 
-            name={getTrashTypeIcon(item.trashType)} 
-            size={24} 
-            color={COLORS.TEXT_SECONDARY} 
-          />
-        </View>
-        <View style={styles.pointsContainer}>
+    <Card variant="elevated" padding="none" style={styles.pickupCard}>
+      {/* Photo Section */}
+      <View style={styles.photoContainer}>
+        <Image 
+          source={{ uri: item.imageUrl }}
+          style={styles.trashPhoto}
+          resizeMode="cover"
+          onError={() => {
+            console.log('Failed to load image:', item.imageUrl);
+            // You could set a fallback image here if needed
+          }}
+        />
+        <View style={styles.photoOverlay}>
           <View style={styles.pointsBadge}>
             <Text style={styles.pointsText}>{item.points}</Text>
+            <Text style={styles.pointsLabel}>pts</Text>
           </View>
-          <Text style={styles.pointsLabel}>points</Text>
+          <View style={styles.severityBadge}>
+            <Text style={styles.severityText}>{item.severity?.toUpperCase()}</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.cardContent}>
+      {/* Card Content */}
+      <View style={styles.cardContentWithPhoto}>
+        <View style={styles.cardHeader}>
+          <View style={styles.trashTypeIcon}>
+            <MaterialIcons 
+              name={getTrashTypeIcon(item.trashType)} 
+              size={20} 
+              color={COLORS.TEXT_SECONDARY} 
+            />
+          </View>
+          <Text style={styles.trashTypeText}>{item.trashType || 'Mixed'}</Text>
+        </View>
+
         <Text style={styles.trashDescription}>{item.description}</Text>
         
         <View style={styles.trashDetails}>
@@ -391,26 +411,29 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xl,
   },
 
-  // Pickup Cards
+  // Pickup Cards with Photos
   pickupCard: {
     marginBottom: SPACING.md,
+    overflow: 'hidden',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  trashTypeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.md,
+  
+  // Photo Section
+  photoContainer: {
+    position: 'relative',
+    height: 160,
     backgroundColor: COLORS.SURFACE_VARIANT,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  pointsContainer: {
-    alignItems: 'center',
+  trashPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    top: SPACING.sm,
+    right: SPACING.sm,
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: SPACING.xs,
   },
   pointsBadge: {
     backgroundColor: COLORS.SUCCESS,
@@ -419,22 +442,65 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.round,
     minWidth: 48,
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    ...SHADOWS.sm,
+  },
+  severityBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
+    ...SHADOWS.sm,
+  },
+  severityText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: 'white',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+  },
+  
+  // Updated Card Layout
+  cardContentWithPhoto: {
+    padding: SPACING.lg,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  trashTypeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.SURFACE_VARIANT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trashTypeText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_SECONDARY,
+    textTransform: 'capitalize',
+  },
+  pointsContainer: {
+    alignItems: 'center',
   },
   pointsText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.TEXT_PRIMARY,
+    color: 'white',
   },
   pointsLabel: {
     fontSize: TYPOGRAPHY.FONT_SIZE.xs,
-    color: COLORS.TEXT_TERTIARY,
+    color: 'white',
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
     textTransform: 'uppercase',
     letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
   },
 
-  // Card Content
+  // Card Content (legacy - keeping for compatibility)
   cardContent: {
     marginBottom: SPACING.lg,
   },
