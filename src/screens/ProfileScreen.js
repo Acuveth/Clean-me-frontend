@@ -1,12 +1,13 @@
 import React from 'react';
 import { MaterialIcons } from "@expo/vector-icons";
-import { 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
   ScrollView,
-  Alert
+  Alert,
+  Image
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from "../config/constants";
@@ -97,7 +98,15 @@ const ProfileScreen = () => {
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <MaterialIcons name="eco" size={40} color={COLORS.SUCCESS} />
+                {user?.profilePictureUrl ? (
+                  <Image
+                    source={{ uri: user.profilePictureUrl }}
+                    style={styles.avatarImage}
+                    onError={() => console.log('Failed to load profile image')}
+                  />
+                ) : (
+                  <MaterialIcons name="eco" size={40} color={COLORS.SUCCESS} />
+                )}
               </View>
               <View style={styles.levelIndicator}>
                 <Text style={styles.levelNumber}>{userLevel.level}</Text>
@@ -232,7 +241,7 @@ const styles = StyleSheet.create({
   // Hero Section
   heroSection: {
     backgroundColor: COLORS.SURFACE,
-    paddingTop: SPACING.xxxl + SPACING.lg,
+    paddingTop: SPACING.xl,
     paddingBottom: SPACING.xl,
     ...SHADOWS.sm,
   },
@@ -253,6 +262,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.md,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.round,
   },
   levelIndicator: {
     position: 'absolute',
@@ -300,7 +315,7 @@ const styles = StyleSheet.create({
   statsSection: {
     backgroundColor: COLORS.BACKGROUND,
     paddingTop: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
   },
   statsGrid: {
     flexDirection: 'row',

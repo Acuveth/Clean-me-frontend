@@ -122,24 +122,23 @@ const EditProfileScreen = () => {
 
     try {
       setLoading(true);
-      
-      // Here you would typically call an API to update the profile
-      // For now, we'll simulate the update
-      const updatedUser = {
-        ...user,
+
+      const result = await updateProfile({
         name: profileData.name,
         bio: profileData.bio,
         location: profileData.location,
-        profilePictureUrl: profileData.profileImage,
-      };
+        profileImage: profileData.profileImage,
+      });
 
-      // await updateProfile(updatedUser);
-      
-      Alert.alert(
-        'Success',
-        'Profile updated successfully!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Profile updated successfully!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to update profile. Please try again.');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -151,16 +150,13 @@ const EditProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={24} color={COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Edit Profile</Text>
-          <Text style={styles.headerSubtitle}>Update your information</Text>
-        </View>
+        <Text style={styles.headerTitle}>Edit Profile</Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={saveProfile}
@@ -279,28 +275,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.BACKGROUND,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER,
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
   },
-  headerContent: {
-    alignItems: 'center',
-    flex: 1,
-  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.TEXT_PRIMARY,
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.TEXT_PRIMARY,
-    opacity: 0.9,
+    textAlign: 'center',
+    flex: 1,
   },
   saveButton: {
     padding: 8,

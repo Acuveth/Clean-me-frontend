@@ -166,7 +166,7 @@ const PickupTrashScreen = () => {
               color={COLORS.TEXT_SECONDARY} 
             />
           </View>
-          <Text style={styles.trashTypeText}>{item.trashType || 'Mixed'}</Text>
+          <Text style={styles.trashTypeText}>{getTrashTypeLabel(item.trashType)}</Text>
         </View>
 
         <Text style={styles.trashDescription}>{item.description}</Text>
@@ -214,16 +214,44 @@ const PickupTrashScreen = () => {
 
   const getTrashTypeIcon = (trashType) => {
     const iconMap = {
-      'plastic': 'local-drink',
-      'paper': 'description',
-      'metal': 'build',
-      'glass': 'wine-bar',
-      'organic': 'eco',
-      'electronic': 'electrical-services',
-      'hazardous': 'warning',
-      'general': 'delete'
+      'plastic': 'local-drink', // Bottle icon for plastic
+      'paper': 'article', // Document/paper icon
+      'metal': 'build-circle', // Metal/construction icon
+      'glass': 'wine-bar', // Glass/bottle icon
+      'organic': 'grass', // Organic/nature icon
+      'electronic': 'memory', // Circuit/chip icon for electronics
+      'hazardous': 'dangerous', // Hazard warning icon
+      'general': 'delete-outline', // Trash can outline
+      'cardboard': 'inventory-2', // Box icon for cardboard
+      'textile': 'checkroom', // Clothing icon for textiles
+      'wood': 'park', // Tree/wood icon
+      'chemical': 'science', // Chemical flask icon
+      'battery': 'battery-full', // Battery icon
+      'oil': 'water-drop', // Liquid/oil icon
+      'mixed': 'category' // Mixed category icon
     };
-    return iconMap[trashType?.toLowerCase()] || 'delete';
+    return iconMap[trashType?.toLowerCase()] || 'delete-outline';
+  };
+
+  const getTrashTypeLabel = (trashType) => {
+    const labelMap = {
+      'plastic': 'Plastic Bottles & Containers',
+      'paper': 'Paper & Documents',
+      'metal': 'Metal Cans & Scraps',
+      'glass': 'Glass Bottles & Jars',
+      'organic': 'Organic Food Waste',
+      'electronic': 'Electronic Devices',
+      'hazardous': 'Hazardous Materials',
+      'general': 'General Waste',
+      'cardboard': 'Cardboard Boxes',
+      'textile': 'Clothing & Fabrics',
+      'wood': 'Wood & Timber',
+      'chemical': 'Chemical Containers',
+      'battery': 'Batteries',
+      'oil': 'Oil & Liquids',
+      'mixed': 'Mixed Materials'
+    };
+    return labelMap[trashType?.toLowerCase()] || 'Mixed Materials';
   };
 
   if (loading) {
@@ -247,73 +275,80 @@ const PickupTrashScreen = () => {
   return (
     <Layout scrollable={false} padding="none">
       <View style={styles.container}>
-        {/* Clean Header */}
-        <View style={styles.modernHeader}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleSection}>
-              <Text style={styles.mainTitle}>Cleanup Opportunities</Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={refreshing}
-            >
-              <MaterialIcons 
-                name="refresh" 
-                size={24} 
-                color={COLORS.TEXT_SECONDARY}
-                style={refreshing ? styles.refreshing : null}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Content Area */}
+        {/* Content Area with integrated scrolling */}
         <View style={styles.contentArea}>
           {trashItems.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Card variant="elevated" padding="large" style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <MaterialIcons name="eco" size={64} color={COLORS.SUCCESS} />
-                </View>
-                <Text style={styles.emptyTitle}>Area looks clean!</Text>
-                <Text style={styles.emptyDescription}>
-                  No cleanup opportunities found in your area right now. Check back later for new reports.
-                </Text>
-                <Button
-                  title="Refresh"
-                  onPress={onRefresh}
-                  variant="ghost"
-                  size="medium"
-                  icon="refresh"
-                  style={styles.emptyButton}
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.emptyScrollContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[COLORS.SUCCESS]}
+                  tintColor={COLORS.SUCCESS}
                 />
-              </Card>
-            </View>
-          ) : (
-            <>
-              <View style={styles.statsHeader}>
-                <Text style={styles.statsText}>
-                  {trashItems.length} opportunity{trashItems.length !== 1 ? 's' : ''} nearby
-                </Text>
+              }
+            >
+              {/* Clean Header */}
+              <View style={styles.modernHeader}>
+                <View style={styles.headerContent}>
+                  <Text style={styles.mainTitle} numberOfLines={1}>Cleanup Opportunities</Text>
+                </View>
               </View>
-              
-              <FlatList
-                data={trashItems}
-                renderItem={renderTrashItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    colors={[COLORS.SUCCESS]}
-                    tintColor={COLORS.SUCCESS}
+
+              <View style={styles.emptyState}>
+                <Card variant="elevated" padding="large" style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <MaterialIcons name="eco" size={64} color={COLORS.SUCCESS} />
+                  </View>
+                  <Text style={styles.emptyTitle}>Area looks clean!</Text>
+                  <Text style={styles.emptyDescription}>
+                    No cleanup opportunities found in your area right now. Check back later for new reports.
+                  </Text>
+                  <Button
+                    title="Refresh"
+                    onPress={onRefresh}
+                    variant="ghost"
+                    size="medium"
+                    icon="refresh"
+                    style={styles.emptyButton}
                   />
-                }
-              />
-            </>
+                </Card>
+              </View>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={trashItems}
+              renderItem={renderTrashItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[COLORS.SUCCESS]}
+                  tintColor={COLORS.SUCCESS}
+                />
+              }
+              ListHeaderComponent={() => (
+                <>
+                  {/* Clean Header */}
+                  <View style={styles.modernHeader}>
+                    <View style={styles.headerContent}>
+                      <Text style={styles.mainTitle} numberOfLines={1}>Cleanup Opportunities</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statsHeader}>
+                    <Text style={styles.statsText}>
+                      {trashItems.length} opportunity{trashItems.length !== 1 ? 's' : ''} nearby
+                    </Text>
+                  </View>
+                </>
+              )}
+            />
           )}
         </View>
       </View>
@@ -353,22 +388,19 @@ const styles = StyleSheet.create({
 
   // Modern Header
   modernHeader: {
-    backgroundColor: COLORS.SURFACE,
-    paddingTop: SPACING.xxxl + SPACING.md,
-    paddingBottom: SPACING.lg,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    ...SHADOWS.sm,
   },
   headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   titleSection: {
     flex: 1,
   },
   mainTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
+    fontSize: TYPOGRAPHY.FONT_SIZE.xl,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
     letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
@@ -379,19 +411,17 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_SECONDARY,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
   },
-  refreshButton: {
-    padding: SPACING.sm,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.SURFACE_VARIANT,
-  },
-  refreshing: {
-    opacity: 0.5,
-  },
 
   // Content Area
   contentArea: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  emptyScrollContent: {
+    flexGrow: 1,
   },
   statsHeader: {
     paddingHorizontal: SPACING.lg,

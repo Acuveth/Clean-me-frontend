@@ -19,7 +19,15 @@ import ShareProgress from '../components/ShareProgress';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
-  const { user, logout } = useAuth();
+  const authContext = useAuth();
+
+  // Add defensive check for auth context
+  if (!authContext) {
+    console.error('SettingsScreen: AuthContext is undefined');
+    return null;
+  }
+
+  const { user, logout } = authContext;
   const { shareAppInvite } = ShareProgress();
   
   const [settings, setSettings] = useState({
@@ -156,16 +164,13 @@ const SettingsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={24} color={COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your preferences</Text>
-        </View>
+        <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -375,28 +380,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.BACKGROUND,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER,
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
   },
-  headerContent: {
-    alignItems: 'center',
-    flex: 1,
-  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.TEXT_PRIMARY,
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.TEXT_PRIMARY,
-    opacity: 0.9,
+    textAlign: 'center',
+    flex: 1,
   },
   content: {
     flex: 1,

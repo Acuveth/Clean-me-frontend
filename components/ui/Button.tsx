@@ -84,7 +84,16 @@ export const Button: React.FC<ButtonProps> = ({
       },
       success: {
         backgroundColor: COLORS.BUTTON.SUCCESS_BG,
-        ...SHADOWS.md,
+        borderRadius: 18,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        minHeight: 48,
+        borderWidth: 0,
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
       },
       danger: {
         backgroundColor: COLORS.BUTTON.DANGER_BG,
@@ -146,6 +155,8 @@ export const Button: React.FC<ButtonProps> = ({
       },
       success: {
         color: COLORS.BUTTON.SUCCESS_TEXT,
+        fontWeight: '500',
+        fontFamily: 'System', // Uses system font as fallback for Roboto
       },
       danger: {
         color: COLORS.BUTTON.DANGER_TEXT,

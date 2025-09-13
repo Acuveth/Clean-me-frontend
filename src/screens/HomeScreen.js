@@ -306,7 +306,7 @@ const HomeScreen = ({ navigation }) => {
             // Add trash location markers with big circular icons
             const trashMarkers = ${JSON.stringify(markers)};
             trashMarkers.forEach(marker => {
-              const markerIcon = marker.status === 'pending' ? 
+              const markerIcon = marker.status === 'pending' ?
                 'data:image/svg+xml;base64,' + btoa(\`
                   <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
                     <!-- Drop shadow circle -->
@@ -408,24 +408,25 @@ const HomeScreen = ({ navigation }) => {
           }}
         />
         
-        {/* Floating Action Buttons */}
-        <View style={styles.floatingActions}>
-          <TouchableOpacity 
-            style={[styles.fabButton, { backgroundColor: COLORS.BUTTON.SUCCESS_BG, justifyContent: 'center', alignItems: 'center' }]}
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={() => navigation.navigate('Report')}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <MaterialIcons name="add" size={28} color={COLORS.TEXT_PRIMARY} />
+            <MaterialIcons name="add" size={20} color="#f1f1f1" />
+            <Text style={styles.actionButtonText}>Report Trash</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.fabButton, { backgroundColor: COLORS.BUTTON.PRIMARY_BG, justifyContent: 'center', alignItems: 'center' }]}
+
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={() => navigation.navigate('Pickup')}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <MaterialIcons name="delete" size={28} color={COLORS.TEXT_PRIMARY} />
+            <MaterialIcons name="delete" size={20} color="#f1f1f1" />
+            <Text style={styles.actionButtonText}>Pickup Trash</Text>
           </TouchableOpacity>
-          
         </View>
       </View>
     );
@@ -498,22 +499,32 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
   },
-  floatingActions: {
+  actionButtons: {
     position: 'absolute',
     bottom: SPACING.xl,
+    left: SPACING.lg,
     right: SPACING.lg,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: SPACING.md,
   },
-  fabButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+  actionButton: {
+    backgroundColor: '#272727',
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 36,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: '#f1f1f1',
+    fontFamily: 'Roboto',
+    fontSize: 14,
+    fontWeight: '500',
   },
   debugText: {
     fontSize: 12,

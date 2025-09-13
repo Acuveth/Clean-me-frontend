@@ -2,7 +2,7 @@ import React from 'react';
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Alert,
   ScrollView,
@@ -17,6 +17,7 @@ import {
   Platform,
 } from "react-native";
 import { useSelector } from "react-redux";
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { COLORS, API_BASE_URL, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from "../config/constants";
 import { analyzeTrashPhoto } from "../services/aiAnalysis";
 import { useAuth } from "../context/AuthContext";
@@ -27,103 +28,122 @@ import { Button } from '../../components/ui/Button';
 const { width, height } = Dimensions.get('window');
 
 const ReportTrashScreen = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [hasPhoto, setHasPhoto] = useState(false);
-  const [hasLocation, setHasLocation] = useState(false);
+  const [currentState, setCurrentState] = useState('camera'); // 'camera', 'analyzing', 'results'
   const [photoUri, setPhotoUri] = useState(null);
   const [locationData, setLocationData] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const spinValue = useRef(new Animated.Value(0)).current;
+
   const { user } = useAuth();
+  const navigation = useNavigation();
+  const isCameraLaunched = useRef(false);
 
-  const steps = [
-    { id: 0, title: "Take Photo", icon: "camera-alt", description: "Capture the trash" },
-    { id: 1, title: "AI Analysis", icon: "psychology", description: "Smart detection" },
-    { id: 2, title: "Location", icon: "location-on", description: "Auto-detected" },
-    { id: 3, title: "Submit", icon: "send", description: "Submit report" }
-  ];
+  // Launch camera when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Only launch camera if we're in camera state and haven't already launched it
+      if (currentState === 'camera' && !isCameraLaunched.current) {
+        isCameraLaunched.current = true;
+        launchCamera();
+      }
 
-  const animateProgress = (step) => {
-    Animated.timing(progressAnim, {
-      toValue: (step / (steps.length - 1)) * 100,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  };
+      // Reset the flag when leaving the screen
+      return () => {
+        if (currentState === 'camera') {
+          isCameraLaunched.current = false;
+        }
+      };
+    }, [currentState])
+  );
 
-  const animateSuccess = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 1.2,
-        duration: 200,
+  // Animation for loading spinner
+  useEffect(() => {
+    if (currentState === 'analyzing') {
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ).start();
+    }
+  }, [currentState]);
+
+  const fadeIn = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
         useNativeDriver: true,
       }),
-      Animated.timing(scaleAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 1,
-        duration: 200,
+        friction: 8,
+        tension: 40,
         useNativeDriver: true,
       }),
     ]).start();
   };
 
-  const takePhoto = async () => {
+  const launchCamera = async () => {
     try {
-      // Animate button press
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "📸 Camera Access Needed",
-          "We need camera permission to capture trash photos for reporting."
+          "We need camera permission to capture trash photos for reporting.",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => {
+                isCameraLaunched.current = false;
+                navigation.navigate('Home');
+              }
+            },
+            { text: "Open Settings", onPress: () => {/* Open settings */} }
+          ]
         );
         return;
       }
 
-      // Launch camera with better settings
+      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         aspect: [4, 3],
         quality: 0.9,
         exif: false,
       });
 
       if (!result.canceled) {
+        isCameraLaunched.current = false; // Reset flag after photo taken
         setPhotoUri(result.assets[0].uri);
-        setHasPhoto(true);
-        setCurrentStep(1);
-        animateProgress(1);
-        
+        setCurrentState('analyzing');
+        fadeIn();
+
         // Start both location and AI analysis simultaneously
         await Promise.all([
           getCurrentLocation(),
           analyzeImage(result.assets[0].uri)
         ]);
-        
-        animateSuccess();
+
+        setCurrentState('results');
+        fadeIn();
+      } else {
+        // If user cancels camera, navigate back to home screen
+        isCameraLaunched.current = false;
+        navigation.navigate('Home');
       }
     } catch (error) {
       Alert.alert("📷 Camera Error", "Failed to take photo. Please try again.");
+      isCameraLaunched.current = false; // Reset flag on error
+      setCurrentState('camera');
     }
   };
 
@@ -145,33 +165,26 @@ const ReportTrashScreen = () => {
       });
 
       setLocationData(location.coords);
-      setHasLocation(true);
-      setCurrentStep(2);
-      animateProgress(2);
     } catch (error) {
-      Alert.alert("📍 Location Error", "Failed to get location. Please ensure GPS is enabled.");
+      console.error('Location error:', error);
+      // Continue without location - we can still submit the report
     }
   };
 
   const analyzeImage = async (imageUri) => {
     try {
-      setIsAnalyzing(true);
       const result = await analyzeTrashPhoto(imageUri);
-      
+
       // Handle validation failure
       if (result.validationError) {
         Alert.alert(
-          "🤖 AI Photo Review",
-          `${result.validationError}\n\nPlease capture litter in outdoor public spaces (streets, parks, sidewalks, etc.)`,
+          "🤖 Photo Review",
+          `${result.validationError}\n\nPlease capture litter in outdoor public spaces.`,
           [
-            { 
-              text: "Retake Photo", 
+            {
+              text: "Retake Photo",
               onPress: () => {
-                setHasPhoto(false);
-                setPhotoUri(null);
-                setAiAnalysis(null);
-                setCurrentStep(0);
-                animateProgress(0);
+                resetAndRetake();
               },
               style: "default"
             },
@@ -180,39 +193,33 @@ const ReportTrashScreen = () => {
         );
         return;
       }
-      
+
       setAiAnalysis(result.analysis);
-      
-      if (result.success && result.analysis) {
-        // Success feedback with better UX
-        setTimeout(() => {
-          Alert.alert(
-            "🤖 AI Analysis Complete", 
-            `Smart Detection Results:\n\n📊 Items Found: ${result.analysis?.trashCount || 0}\n🏷️ Types: ${result.analysis?.trashTypes?.join(', ') || 'Mixed'}\n📍 Context: ${result.analysis?.location_context || 'Public space'}`,
-            [{ text: "Continue", style: "default" }]
-          );
-        }, 500);
-      } else if (result.analysis) {
-        Alert.alert("Photo Validated", "Image approved for reporting.");
-      }
     } catch (error) {
       console.error('Analysis error:', error);
-      Alert.alert("⚠️ Analysis Warning", "AI analysis unavailable, but you can still submit the report.");
-    } finally {
-      setIsAnalyzing(false);
+      // Continue without AI analysis
+      setAiAnalysis({
+        description: "Trash detected",
+        trashCount: 1,
+        trashTypes: ["unspecified"],
+        severity: "medium",
+        verified: false
+      });
     }
   };
 
+  const resetAndRetake = () => {
+    setPhotoUri(null);
+    setLocationData(null);
+    setAiAnalysis(null);
+    setCurrentState('camera');
+    isCameraLaunched.current = false; // Reset flag to allow camera relaunch
+    // Don't call launchCamera here, let useFocusEffect handle it
+  };
+
   const submitReport = async () => {
-    if (!hasPhoto) {
-      Alert.alert("📸 Photo Required", "Please take a photo of the trash first.");
-      return;
-    }
-    if (!hasLocation) {
-      Alert.alert(
-        "📍 Location Required",
-        "Please allow location access to submit the report."
-      );
+    if (!photoUri) {
+      Alert.alert("📸 Photo Required", "Please take a photo first.");
       return;
     }
 
@@ -223,9 +230,7 @@ const ReportTrashScreen = () => {
 
     try {
       setIsSubmitting(true);
-      setCurrentStep(3);
-      animateProgress(3);
-      
+
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('image', {
@@ -233,29 +238,29 @@ const ReportTrashScreen = () => {
         type: 'image/jpeg',
         name: 'trash-report.jpg'
       });
-      
-      // Add all the data
-      formData.append('latitude', locationData.latitude.toString());
-      formData.append('longitude', locationData.longitude.toString());
-      formData.append('username', user.name || user.email);
-      
-      // Add AI analysis data if available
-      if (aiAnalysis) {
-        formData.append('aiDescription', aiAnalysis?.description || 'User-submitted trash report');
-        formData.append('trashCount', (aiAnalysis?.trashCount || '1').toString());
-        formData.append('trashTypes', JSON.stringify(aiAnalysis?.trashTypes || ['unspecified trash']));
-        formData.append('severity', aiAnalysis?.severity || 'medium');
-        formData.append('locationContext', aiAnalysis?.location_context || 'user-reported location');
+
+      // Add location data if available
+      if (locationData) {
+        formData.append('latitude', locationData.latitude.toString());
+        formData.append('longitude', locationData.longitude.toString());
       } else {
-        // Fallback data if AI analysis failed
-        formData.append('aiDescription', 'User-submitted trash report');
-        formData.append('trashCount', '1');
-        formData.append('trashTypes', JSON.stringify(['unspecified trash']));
-        formData.append('severity', 'medium');
-        formData.append('locationContext', 'user-reported location');
+        // Use default location if not available
+        formData.append('latitude', '0');
+        formData.append('longitude', '0');
       }
-      
-      // Add standard fields required by backend
+
+      formData.append('username', user.name || user.email);
+
+      // Add AI analysis data
+      if (aiAnalysis) {
+        formData.append('aiDescription', aiAnalysis.description || 'User-submitted trash report');
+        formData.append('trashCount', (aiAnalysis.trashCount || '1').toString());
+        formData.append('trashTypes', JSON.stringify(aiAnalysis.trashTypes || ['unspecified']));
+        formData.append('severity', aiAnalysis.severity || 'medium');
+        formData.append('locationContext', aiAnalysis.location_context || 'user-reported location');
+      }
+
+      // Add standard fields
       formData.append('description', aiAnalysis?.description || 'User-submitted trash report');
       formData.append('trashType', aiAnalysis?.trashTypes?.[0] || 'mixed');
       formData.append('size', aiAnalysis?.severity === 'high' ? 'large' : aiAnalysis?.severity === 'low' ? 'small' : 'medium');
@@ -271,32 +276,25 @@ const ReportTrashScreen = () => {
 
       if (response.ok) {
         const result = await response.json();
-        
-        // Show success animation
-        setShowSuccessAnimation(true);
-        animateSuccess();
-        
-        setTimeout(() => {
-          Alert.alert(
-            "Report Submitted", 
-            `Report submitted successfully.\n\nPoints have been added to your account.`,
-            [
-              { 
-                text: "View on Map", 
-                onPress: () => {/* Navigate to map */}
-              },
-              { 
-                text: "Submit Another", 
-                onPress: resetForm,
-                style: "default"
-              }
-            ]
-          );
-        }, 1000);
-        
+
+        Alert.alert(
+          "✅ Report Submitted",
+          `Your report has been submitted successfully!\n\n+${getPointsEstimate()} points earned`,
+          [
+            {
+              text: "Report Another",
+              onPress: resetAndRetake,
+              style: "default"
+            },
+            {
+              text: "Done",
+              style: "cancel"
+            }
+          ]
+        );
+
       } else {
-        const error = await response.json();
-        Alert.alert("❌ Submission Failed", error.message || "Please try again later.");
+        Alert.alert("❌ Submission Failed", "Please try again later.");
       }
     } catch (error) {
       console.error('Submit error:', error);
@@ -306,30 +304,6 @@ const ReportTrashScreen = () => {
     }
   };
 
-  const resetForm = () => {
-    setHasPhoto(false);
-    setHasLocation(false);
-    setPhotoUri(null);
-    setLocationData(null);
-    setAiAnalysis(null);
-    setCurrentStep(0);
-    setShowSuccessAnimation(false);
-    animateProgress(0);
-  };
-
-  const getStepIcon = (step, index) => {
-    if (index < currentStep) return "check-circle";
-    if (index === currentStep && isAnalyzing && index === 1) return "psychology";
-    if (index === currentStep && isSubmitting && index === 3) return "send";
-    return step.icon;
-  };
-
-  const getStepColor = (index) => {
-    if (index < currentStep) return COLORS.SUCCESS;
-    if (index === currentStep) return COLORS.PRIMARY;
-    return COLORS.TEXT_TERTIARY;
-  };
-
   const getPointsEstimate = () => {
     if (!aiAnalysis) return 10;
     const basePoints = (aiAnalysis.trashCount || 1) * 10;
@@ -337,241 +311,231 @@ const ReportTrashScreen = () => {
     return Math.round(basePoints * severityMultiplier);
   };
 
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
+
+  // Render different screens based on state
+  if (currentState === 'camera') {
+    return (
+      <Layout scrollable={false} padding="none">
+        <View style={styles.cameraContainer}>
+          <View style={styles.cameraPlaceholder}>
+            <MaterialIcons name="camera-alt" size={48} color={COLORS.TEXT_TERTIARY} />
+            <Text style={styles.cameraLoadingText}>Opening Camera...</Text>
+
+            <TouchableOpacity
+              style={styles.openCameraButton}
+              onPress={() => {
+                isCameraLaunched.current = false;
+                launchCamera();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.openCameraButtonText}>Open Camera</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Layout>
+    );
+  }
+
+  if (currentState === 'analyzing') {
+    return (
+      <Layout scrollable={false} padding="none">
+        <View style={styles.analyzingContainer}>
+          <Animated.View style={[styles.analyzingContent, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+            {/* Preview Image with Overlay */}
+            <View style={styles.analyzingImageContainer}>
+              <Image source={{ uri: photoUri }} style={styles.analyzingImage} />
+              <View style={styles.analyzingOverlay}>
+                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                  <MaterialIcons name="psychology" size={64} color={COLORS.SUCCESS} />
+                </Animated.View>
+              </View>
+            </View>
+
+            {/* Loading Text */}
+            <View style={styles.analyzingTextContainer}>
+              <ActivityIndicator size="large" color={COLORS.SUCCESS} style={styles.loadingSpinner} />
+              <Text style={styles.analyzingTitle}>Analysing the photo</Text>
+              <Text style={styles.analyzingSubtitle}>Our AI is detecting trash items...</Text>
+
+              {/* Progress Steps */}
+              <View style={styles.progressSteps}>
+                <View style={styles.progressStep}>
+                  <MaterialIcons name="check-circle" size={20} color={COLORS.SUCCESS} />
+                  <Text style={styles.progressStepText}>Photo captured</Text>
+                </View>
+                <View style={styles.progressStep}>
+                  <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+                  <Text style={styles.progressStepText}>Analyzing content...</Text>
+                </View>
+                <View style={styles.progressStep}>
+                  <MaterialIcons name="radio-button-unchecked" size={20} color={COLORS.TEXT_TERTIARY} />
+                  <Text style={[styles.progressStepText, { color: COLORS.TEXT_TERTIARY }]}>Getting location</Text>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Layout>
+    );
+  }
+
+  // Results screen
   return (
     <Layout scrollable padding="none">
       <View style={styles.container}>
-        {/* Clean Minimalist Header */}
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleSection}>
-              <Text style={styles.headerTitle}>Report Trash</Text>
-            </View>
-            
-            {/* Points Indicator */}
-            {aiAnalysis && (
-              <View style={styles.pointsContainer}>
-                <View style={styles.pointsBadge}>
-                  <MaterialIcons name="eco" size={16} color={COLORS.SUCCESS} />
-                  <Text style={styles.pointsText}>+{getPointsEstimate()}</Text>
-                </View>
-                <Text style={styles.pointsLabel}>points</Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Simple Progress Bar */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressTrack}>
-              <Animated.View 
-                style={[
-                  styles.progressFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  }
-                ]} 
-              />
-            </View>
-            <Text style={styles.progressText}>
-              Step {currentStep + 1} of {steps.length}
-            </Text>
+          <Text style={styles.headerTitle}>Report Details</Text>
+          <View style={styles.headerBadge}>
+            <MaterialIcons name="eco" size={16} color={COLORS.SUCCESS} />
+            <Text style={styles.headerBadgeText}>+{getPointsEstimate()} pts</Text>
           </View>
         </View>
 
-        <View style={styles.contentContainer}>
-          {/* Clean Step Cards - 2x2 Grid */}
-          <View style={styles.stepsSection}>
-            <View style={styles.stepsGrid}>
-              {steps.map((step, index) => (
-                <Card 
-                  key={step.id}
-                  variant={index <= currentStep ? "elevated" : "default"}
-                  padding="medium"
-                  style={[
-                    styles.stepCard,
-                    styles.gridStepCard,
-                    index === currentStep && styles.activeStepCard,
-                    index < currentStep && styles.completedStepCard,
-                  ]}
-                >
-                  <View style={styles.gridStepContent}>
-                    <View style={[
-                      styles.gridStepIcon,
-                      { 
-                        backgroundColor: index <= currentStep ? getStepColor(index) + '20' : COLORS.SURFACE_VARIANT 
-                      }
-                    ]}>
-                      {(index === currentStep && ((index === 1 && isAnalyzing) || (index === 3 && isSubmitting))) ? (
-                        <ActivityIndicator size="small" color={getStepColor(index)} />
-                      ) : (
-                        <MaterialIcons 
-                          name={getStepIcon(step, index)} 
-                          size={24} 
-                          color={getStepColor(index)} 
-                        />
-                      )}
-                    </View>
-                    
-                    <View style={styles.gridStepText}>
-                      <Text style={[styles.gridStepTitle, { color: getStepColor(index) }]}>
-                        {step.title}
-                      </Text>
-                      <Text style={styles.gridStepDescription}>
-                        {index === 1 && isAnalyzing ? "Analyzing..." :
-                         index === 1 && aiAnalysis ? `${aiAnalysis?.trashCount || 0} items` :
-                         index === 2 && hasLocation ? "Confirmed" :
-                         index === 3 && isSubmitting ? "Submitting..." :
-                         step.description}
-                      </Text>
-                    </View>
-                    
-                    {index < currentStep && (
-                      <View style={styles.gridCompletedBadge}>
-                        <MaterialIcons name="check" size={12} color={COLORS.SUCCESS} />
-                      </View>
-                    )}
-                  </View>
-                </Card>
-              ))}
-            </View>
-          </View>
+        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+            {/* Photo Card */}
+            <Card variant="elevated" padding="none" style={styles.photoResultCard}>
+              <Image source={{ uri: photoUri }} style={styles.resultImage} />
 
-          {/* Clean Photo Section */}
-          <View style={styles.photoSection}>
-            {!hasPhoto ? (
-              <Card variant="elevated" padding="large" style={styles.cameraCard}>
-                <TouchableOpacity 
-                  style={styles.cameraButton}
-                  onPress={takePhoto}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.cameraIcon}>
-                    <MaterialIcons name="camera-alt" size={32} color={COLORS.SUCCESS} />
-                  </View>
-                  <Text style={styles.cameraButtonText}>Take Photo</Text>
-                  <Text style={styles.cameraButtonSubtext}>Capture the trash to report</Text>
-                </TouchableOpacity>
-              </Card>
-            ) : (
-              <Card variant="elevated" padding="medium" style={styles.photoCard}>
-                <View style={styles.photoContainer}>
-                  <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                  {showSuccessAnimation && (
-                    <View style={styles.successOverlay}>
-                      <View style={styles.successContent}>
-                        <MaterialIcons name="check-circle" size={48} color={COLORS.SUCCESS} />
-                        <Text style={styles.successText}>Report Submitted!</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-                
-                <View style={styles.photoActions}>
-                  <Button
-                    title="Retake"
-                    onPress={takePhoto}
-                    variant="secondary"
-                    size="small"
-                    icon="camera-alt"
+              {/* Verification Badge */}
+              {aiAnalysis && (
+                <View style={[styles.verificationBadge, aiAnalysis.verified ? styles.verifiedBadge : styles.unverifiedBadge]}>
+                  <MaterialIcons
+                    name={aiAnalysis.verified ? "verified" : "info"}
+                    size={16}
+                    color={aiAnalysis.verified ? COLORS.SUCCESS : COLORS.WARNING}
                   />
-                  
-                  {aiAnalysis && (
-                    <View style={styles.photoStats}>
-                      <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{aiAnalysis?.trashCount || 0}</Text>
-                        <Text style={styles.statLabel}>items</Text>
-                      </View>
-                      <View style={styles.statDivider} />
-                      <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{aiAnalysis?.severity || 'med'}</Text>
-                        <Text style={styles.statLabel}>priority</Text>
-                      </View>
-                    </View>
-                  )}
+                  <Text style={[styles.verificationText, { color: aiAnalysis.verified ? COLORS.SUCCESS : COLORS.WARNING }]}>
+                    {aiAnalysis.verified ? "Verified" : "Under Review"}
+                  </Text>
                 </View>
-              </Card>
-            )}
-          </View>
+              )}
+            </Card>
 
-          {/* Clean AI Analysis Card */}
-          {aiAnalysis && (
-            <View style={styles.analysisSection}>
-              <Card variant="elevated" padding="large" style={styles.analysisCard}>
-                <View style={styles.analysisHeader}>
-                  <View style={styles.analysisIcon}>
-                    <MaterialIcons name="psychology" size={20} color={COLORS.SUCCESS} />
+            {/* AI Analysis Card */}
+            <Card variant="elevated" padding="large" style={styles.analysisResultCard}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="psychology" size={24} color={COLORS.PRIMARY} />
+                <Text style={styles.sectionTitle}>AI Analysis</Text>
+              </View>
+
+              <View style={styles.analysisDetails}>
+                <Text style={styles.descriptionText}>
+                  {aiAnalysis?.description || "Trash detected in the area"}
+                </Text>
+
+                {/* Trash Details Grid */}
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Items Detected</Text>
+                    <Text style={styles.detailValue}>{aiAnalysis?.trashCount || 1}</Text>
                   </View>
-                  <View style={styles.analysisHeaderText}>
-                    <Text style={styles.analysisTitle}>AI Analysis</Text>
-                    <Text style={styles.analysisSubtitle}>Smart detection results</Text>
+
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Severity</Text>
+                    <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(aiAnalysis?.severity) + '20' }]}>
+                      <Text style={[styles.severityText, { color: getSeverityColor(aiAnalysis?.severity) }]}>
+                        {(aiAnalysis?.severity || 'medium').toUpperCase()}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-                
-                <View style={styles.analysisContent}>
-                  <View style={styles.analysisItem}>
-                    <Text style={styles.analysisLabel}>Description</Text>
-                    <Text style={styles.analysisValue}>
-                      {aiAnalysis?.description || 'Waste detected'}
+
+                {/* Trash Types */}
+                {aiAnalysis?.trashTypes && aiAnalysis.trashTypes.length > 0 && (
+                  <View style={styles.typesSection}>
+                    <Text style={styles.detailLabel}>Types Identified</Text>
+                    <View style={styles.typesList}>
+                      {aiAnalysis.trashTypes.map((type, index) => (
+                        <View key={index} style={styles.typeChip}>
+                          <Text style={styles.typeChipText}>{type}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            </Card>
+
+            {/* Location Card */}
+            <Card variant="elevated" padding="large" style={styles.locationCard}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="location-on" size={24} color={COLORS.ERROR} />
+                <Text style={styles.sectionTitle}>Location</Text>
+              </View>
+
+              {locationData ? (
+                <View style={styles.locationDetails}>
+                  <View style={styles.coordinatesRow}>
+                    <View style={styles.coordinateItem}>
+                      <Text style={styles.coordinateLabel}>Latitude</Text>
+                      <Text style={styles.coordinateValue}>{locationData.latitude.toFixed(6)}</Text>
+                    </View>
+                    <View style={styles.coordinateDivider} />
+                    <View style={styles.coordinateItem}>
+                      <Text style={styles.coordinateLabel}>Longitude</Text>
+                      <Text style={styles.coordinateValue}>{locationData.longitude.toFixed(6)}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.accuracyRow}>
+                    <MaterialIcons name="my-location" size={16} color={COLORS.TEXT_SECONDARY} />
+                    <Text style={styles.accuracyText}>
+                      Accurate to {locationData.accuracy ? `${Math.round(locationData.accuracy)}m` : 'unknown'}
                     </Text>
                   </View>
-                  
-                  <View style={styles.analysisRow}>
-                    <View style={styles.analysisColumn}>
-                      <Text style={styles.analysisLabel}>Count</Text>
-                      <Text style={styles.analysisValue}>{aiAnalysis?.trashCount || 0}</Text>
-                    </View>
-                    <View style={styles.analysisColumn}>
-                      <Text style={styles.analysisLabel}>Priority</Text>
-                      <Text style={[
-                        styles.analysisValue,
-                        { 
-                          color: aiAnalysis?.severity === 'high' ? COLORS.ERROR : 
-                                 aiAnalysis?.severity === 'low' ? COLORS.SUCCESS : COLORS.TEXT_SECONDARY 
-                        }
-                      ]}>
-                        {aiAnalysis?.severity?.toUpperCase() || 'MEDIUM'}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {aiAnalysis?.trashTypes && aiAnalysis.trashTypes.length > 0 && (
-                    <View style={styles.analysisItem}>
-                      <Text style={styles.analysisLabel}>Types Detected</Text>
-                      <View style={styles.typesTags}>
-                        {aiAnalysis.trashTypes.slice(0, 3).map((type, index) => (
-                          <View key={index} style={styles.typeTag}>
-                            <Text style={styles.typeTagText}>{type}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
                 </View>
-              </Card>
-            </View>
-          )}
+              ) : (
+                <View style={styles.locationError}>
+                  <MaterialIcons name="location-off" size={32} color={COLORS.TEXT_TERTIARY} />
+                  <Text style={styles.locationErrorText}>Location unavailable</Text>
+                  <Text style={styles.locationErrorSubtext}>Report will be submitted without precise location</Text>
+                </View>
+              )}
+            </Card>
 
-          {/* Clean Submit Section */}
-          <View style={styles.submitSection}>
-            <Button
-              title={isSubmitting ? "Submitting Report..." : "Submit Report"}
-              onPress={submitReport}
-              variant="success"
-              size="large"
-              icon={isSubmitting ? undefined : "send"}
-              loading={isSubmitting}
-              disabled={!hasPhoto || !hasLocation || isSubmitting}
-              fullWidth
-              elevated
-            />
-            
-          </View>
-        </View>
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <Button
+                title="Retake Photo"
+                onPress={resetAndRetake}
+                variant="secondary"
+                size="large"
+                icon="camera-alt"
+                style={styles.retakeButton}
+              />
+
+              <Button
+                title={isSubmitting ? "Submitting..." : "Submit Report"}
+                onPress={submitReport}
+                variant="success"
+                size="large"
+                icon={isSubmitting ? undefined : "send"}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                style={styles.submitButton}
+                elevated
+              />
+            </View>
+          </Animated.View>
+        </ScrollView>
       </View>
     </Layout>
   );
+};
+
+const getSeverityColor = (severity) => {
+  switch(severity) {
+    case 'high': return COLORS.ERROR;
+    case 'low': return COLORS.SUCCESS;
+    default: return COLORS.WARNING;
+  }
 };
 
 const styles = StyleSheet.create({
@@ -580,39 +544,121 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BACKGROUND,
   },
 
-  // Clean Header
+  // Camera State
+  cameraContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  cameraPlaceholder: {
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  cameraLoadingText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    marginBottom: SPACING.xl,
+  },
+  openCameraButton: {
+    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.lg,
+  },
+  openCameraButtonText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    color: COLORS.SURFACE,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+  },
+
+  // Analyzing State
+  analyzingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  analyzingContent: {
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: SPACING.xl,
+  },
+  analyzingImageContainer: {
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: RADIUS.xl,
+    overflow: 'hidden',
+    marginBottom: SPACING.xxxl,
+    ...SHADOWS.lg,
+  },
+  analyzingImage: {
+    width: '100%',
+    height: '100%',
+  },
+  analyzingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.BACKGROUND + 'E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  analyzingTextContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  loadingSpinner: {
+    marginBottom: SPACING.lg,
+  },
+  analyzingTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+    color: COLORS.TEXT_PRIMARY,
+    marginBottom: SPACING.sm,
+  },
+  analyzingSubtitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    marginBottom: SPACING.xxxl,
+  },
+  progressSteps: {
+    width: '100%',
+    gap: SPACING.md,
+  },
+  progressStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  progressStepText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    color: COLORS.TEXT_PRIMARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+
+  // Results State
   header: {
     backgroundColor: COLORS.SURFACE,
     paddingTop: SPACING.xxxl + SPACING.lg,
     paddingBottom: SPACING.lg,
-    ...SHADOWS.sm,
-  },
-  headerContent: {
+    paddingHorizontal: SPACING.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  titleSection: {
-    flex: 1,
+    ...SHADOWS.sm,
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.FONT_SIZE.xxl,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.normal,
-    marginBottom: SPACING.xs,
   },
-  headerSubtitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-  },
-  pointsContainer: {
-    alignItems: 'center',
-  },
-  pointsBadge: {
+  headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.SUCCESS + '20',
@@ -620,309 +666,202 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.round,
     gap: SPACING.xs,
-    marginBottom: SPACING.xs,
   },
-  pointsText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+  headerBadgeText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.SUCCESS,
   },
-  pointsLabel: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
-    color: COLORS.TEXT_TERTIARY,
-    textTransform: 'uppercase',
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+
+  scrollContent: {
+    flex: 1,
   },
 
-  // Progress Section
-  progressSection: {
-    paddingHorizontal: SPACING.lg,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: COLORS.SURFACE_VARIANT,
-    borderRadius: RADIUS.xs,
+  // Photo Result Card
+  photoResultCard: {
+    margin: SPACING.lg,
     overflow: 'hidden',
-    marginBottom: SPACING.sm,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: COLORS.SUCCESS,
-    borderRadius: RADIUS.xs,
-  },
-  progressText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_TERTIARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-    textAlign: 'center',
-  },
-
-  // Content Container
-  contentContainer: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-
-  // Clean Steps Section - 2x2 Grid
-  stepsSection: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-  },
-  stepsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
-  },
-  stepCard: {
-    marginBottom: SPACING.xs,
-  },
-  gridStepCard: {
-    width: '48%',
-    minHeight: 120,
-    marginBottom: SPACING.md,
-    maxWidth: 180,
-  },
-  activeStepCard: {
-    borderColor: COLORS.PRIMARY + '30',
-    backgroundColor: COLORS.SURFACE_VARIANT,
-  },
-  completedStepCard: {
-    borderColor: COLORS.SUCCESS + '30',
-  },
-  gridStepContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
     position: 'relative',
   },
-  gridStepIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  gridStepText: {
-    alignItems: 'center',
-  },
-  gridStepTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-  },
-  gridStepDescription: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-    textAlign: 'center',
-    lineHeight: TYPOGRAPHY.LINE_HEIGHT.normal * TYPOGRAPHY.FONT_SIZE.sm,
-  },
-  gridCompletedBadge: {
-    position: 'absolute',
-    top: SPACING.sm,
-    right: SPACING.sm,
-    width: 20,
-    height: 20,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.SUCCESS + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Clean Photo Section
-  photoSection: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-  },
-  cameraCard: {
-    alignItems: 'center',
-  },
-  cameraButton: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xxxl,
-    paddingHorizontal: SPACING.xl,
-  },
-  cameraIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.SUCCESS + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  cameraButtonText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.xs,
-  },
-  cameraButtonSubtext: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-  },
-
-  // Clean Photo Card
-  photoCard: {
-    overflow: 'hidden',
-  },
-  photoContainer: {
-    position: 'relative',
-  },
-  photoPreview: {
+  resultImage: {
     width: '100%',
-    height: 240,
+    height: 280,
     backgroundColor: COLORS.SURFACE_VARIANT,
   },
-  successOverlay: {
+  verificationBadge: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.BACKGROUND + 'CC',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successContent: {
-    alignItems: 'center',
-  },
-  successText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.SUCCESS,
-    marginTop: SPACING.md,
-  },
-  photoActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: SPACING.md,
-  },
-  photoStats: {
+    top: SPACING.md,
+    right: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
-    color: COLORS.TEXT_PRIMARY,
-  },
-  statLabel: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
-    color: COLORS.TEXT_TERTIARY,
-    textTransform: 'uppercase',
-    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: COLORS.DIVIDER,
-  },
-
-  // Clean Analysis Section
-  analysisSection: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-  },
-  analysisCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.SUCCESS,
-  },
-  analysisHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  analysisIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.SUCCESS + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  analysisHeaderText: {
-    flex: 1,
-  },
-  analysisTitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.md,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: SPACING.xs,
-  },
-  analysisSubtitle: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    color: COLORS.TEXT_SECONDARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-  },
-  analysisContent: {
-    gap: SPACING.md,
-  },
-  analysisItem: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.round,
     gap: SPACING.xs,
   },
-  analysisRow: {
+  verifiedBadge: {
+    backgroundColor: COLORS.SUCCESS + '20',
+  },
+  unverifiedBadge: {
+    backgroundColor: COLORS.WARNING + '20',
+  },
+  verificationText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+  },
+
+  // Analysis Card
+  analysisResultCard: {
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+  },
+  sectionHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.lg,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_PRIMARY,
+  },
+  analysisDetails: {
     gap: SPACING.lg,
   },
-  analysisColumn: {
-    flex: 1,
-    gap: SPACING.xs,
+  descriptionText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    color: COLORS.TEXT_PRIMARY,
+    lineHeight: TYPOGRAPHY.LINE_HEIGHT.normal * TYPOGRAPHY.FONT_SIZE.base,
   },
-  analysisLabel: {
+  detailsGrid: {
+    flexDirection: 'row',
+    gap: SPACING.xl,
+  },
+  detailItem: {
+    flex: 1,
+    gap: SPACING.sm,
+  },
+  detailLabel: {
     fontSize: TYPOGRAPHY.FONT_SIZE.sm,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
     color: COLORS.TEXT_TERTIARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
     textTransform: 'uppercase',
     letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
   },
-  analysisValue: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+  detailValue: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xl,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
     color: COLORS.TEXT_PRIMARY,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
-    lineHeight: TYPOGRAPHY.LINE_HEIGHT.normal * TYPOGRAPHY.FONT_SIZE.base,
   },
-  typesTags: {
+  severityBadge: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    alignSelf: 'flex-start',
+  },
+  severityText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.bold,
+  },
+  typesSection: {
+    gap: SPACING.sm,
+  },
+  typesList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.xs,
-    marginTop: SPACING.xs,
+    gap: SPACING.sm,
   },
-  typeTag: {
+  typeChip: {
     backgroundColor: COLORS.SURFACE_VARIANT,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.round,
   },
-  typeTagText: {
-    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+  typeChipText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
     color: COLORS.TEXT_SECONDARY,
     fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
     textTransform: 'capitalize',
   },
 
-  // Clean Submit Section
-  submitSection: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.xl,
+  // Location Card
+  locationCard: {
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
   },
-  submitHint: {
+  locationDetails: {
+    gap: SPACING.lg,
+  },
+  coordinatesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.SURFACE_VARIANT,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  coordinateItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  coordinateLabel: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.xs,
+    color: COLORS.TEXT_TERTIARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+    textTransform: 'uppercase',
+    letterSpacing: TYPOGRAPHY.LETTER_SPACING.wide,
+  },
+  coordinateValue: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.md,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.semibold,
+    color: COLORS.TEXT_PRIMARY,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  coordinateDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.DIVIDER,
+  },
+  accuracyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  accuracyText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.sm,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+  locationError: {
+    alignItems: 'center',
+    paddingVertical: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  locationErrorText: {
+    fontSize: TYPOGRAPHY.FONT_SIZE.base,
+    color: COLORS.TEXT_SECONDARY,
+    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+  locationErrorSubtext: {
     fontSize: TYPOGRAPHY.FONT_SIZE.sm,
     color: COLORS.TEXT_TERTIARY,
     textAlign: 'center',
-    marginTop: SPACING.md,
-    fontWeight: TYPOGRAPHY.FONT_WEIGHT.medium,
+  },
+
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    paddingBottom: SPACING.xxxl,
+  },
+  retakeButton: {
+    flex: 1,
+  },
+  submitButton: {
+    flex: 2,
   },
 });
 

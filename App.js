@@ -51,11 +51,9 @@ const MainTabs = () => (
         return <MaterialIcons name={iconName} size={size} color={color} />;
       },
       tabBarActiveTintColor: '#FFFFFF',
-      tabBarInactiveTintColor: COLORS.TEXT_DISABLED,
+      tabBarInactiveTintColor: COLORS.TEXT_QUAD,
       tabBarStyle: {
         backgroundColor: COLORS.SURFACE,
-        borderTopColor: COLORS.BORDER,
-        borderTopWidth: 1,
         paddingBottom: Platform.OS === 'ios' ? SPACING.lg : SPACING.sm,
         paddingTop: SPACING.sm,
         height: Platform.OS === 'ios' ? 85 : 70,

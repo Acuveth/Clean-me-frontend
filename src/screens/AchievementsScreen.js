@@ -240,72 +240,71 @@ const AchievementsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={24} color={COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Achievements</Text>
-          <Text style={styles.headerSubtitle}>Track your progress</Text>
-        </View>
+        <Text style={styles.headerTitle}>Achievements</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {/* Stats Overview */}
-        <View style={styles.statsOverview}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{unlockedCount}</Text>
-            <Text style={styles.statLabel}>Unlocked</Text>
-            <Text style={styles.statSubtext}>of {achievements.length}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{totalPoints}</Text>
-            <Text style={styles.statLabel}>Points Earned</Text>
-            <Text style={styles.statSubtext}>from achievements</Text>
-          </View>
-        </View>
-
-        {/* Category Filter */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryFilter}
-          contentContainerStyle={styles.categoryContent}
-        >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category.key}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category.key && styles.selectedCategory
-              ]}
-              onPress={() => setSelectedCategory(category.key)}
-            >
-              <MaterialIcons 
-                name={category.icon} 
-                size={20} 
-                color={selectedCategory === category.key ? COLORS.TEXT_PRIMARY : COLORS.TEXT_SECONDARY} 
-              />
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category.key && styles.selectedCategoryText
-              ]}>
-                {category.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Achievements List */}
-        <ScrollView 
-          style={styles.achievementsList}
+        <ScrollView
+          style={styles.mainScrollView}
           showsVerticalScrollIndicator={false}
         >
-          {filteredAchievements.map(renderAchievementCard)}
-          <View style={styles.bottomPadding} />
+          {/* Stats Overview */}
+          <View style={styles.statsOverview}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{unlockedCount}</Text>
+              <Text style={styles.statLabel}>Unlocked</Text>
+              <Text style={styles.statSubtext}>of {achievements.length}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{totalPoints}</Text>
+              <Text style={styles.statLabel}>Points Earned</Text>
+              <Text style={styles.statSubtext}>from achievements</Text>
+            </View>
+          </View>
+
+          {/* Category Filter */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryFilter}
+            contentContainerStyle={styles.categoryContent}
+          >
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.key}
+                style={[
+                  styles.categoryButton,
+                  selectedCategory === category.key && styles.selectedCategory
+                ]}
+                onPress={() => setSelectedCategory(category.key)}
+              >
+                <MaterialIcons
+                  name={category.icon}
+                  size={20}
+                  color={selectedCategory === category.key ? COLORS.TEXT_PRIMARY : COLORS.TEXT_SECONDARY}
+                />
+                <Text style={[
+                  styles.categoryText,
+                  selectedCategory === category.key && styles.selectedCategoryText
+                ]}>
+                  {category.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Achievements List */}
+          <View style={styles.achievementsList}>
+            {filteredAchievements.map(renderAchievementCard)}
+            <View style={styles.bottomPadding} />
+          </View>
         </ScrollView>
       </Animated.View>
     </SafeAreaView>
@@ -321,30 +320,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.PRIMARY,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.BACKGROUND,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER,
   },
   backButton: {
     padding: 8,
     borderRadius: 8,
   },
-  headerContent: {
-    alignItems: 'center',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.TEXT_PRIMARY,
+    textAlign: 'center',
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.TEXT_PRIMARY,
-    opacity: 0.9,
-  },
   content: {
+    flex: 1,
+  },
+  mainScrollView: {
     flex: 1,
   },
   statsOverview: {
@@ -408,7 +404,6 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
   },
   achievementsList: {
-    flex: 1,
     paddingHorizontal: 16,
   },
   achievementCard: {

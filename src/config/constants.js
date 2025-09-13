@@ -65,6 +65,7 @@ export const COLORS = {
   // Text hierarchy - clean blacks, grays, whites
   TEXT_PRIMARY: "#FFFFFF", // Pure white
   TEXT_SECONDARY: "#D1D5DB", // Light gray
+  TEXT_QUAD: "#aaaaaaff", // Medium gray
   TEXT_TERTIARY: "#9CA3AF", // Medium gray
   TEXT_DISABLED: "#6B7280", // Darker gray for disabled
   
@@ -92,9 +93,9 @@ export const COLORS = {
     SECONDARY_TEXT: "#D1D5DB",
     
     // Success/Environmental button - ONLY for most important environmental actions
-    SUCCESS_BG: "#16A34A", // Neutral green - use sparingly!
-    SUCCESS_HOVER: "#15803D",
-    SUCCESS_TEXT: "#FFFFFF",
+    SUCCESS_BG: "#272727", // Dark gray background
+    SUCCESS_HOVER: "#1f1f1f",
+    SUCCESS_TEXT: "#f1f1f1", // Light gray text
     
     // Danger button - minimal red
     DANGER_BG: "#DC2626",

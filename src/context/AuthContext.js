@@ -215,15 +215,66 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const value = { 
-    user, 
-    login, 
-    register, 
-    logout, 
+  const updateProfile = async (profileData) => {
+    try {
+      const token = await storage.getItemAsync("authToken");
+      if (!token) {
+        throw new Error("No auth token found");
+      }
+
+      const formData = new FormData();
+
+      // Add text fields
+      if (profileData.name) formData.append('name', profileData.name);
+      if (profileData.bio) formData.append('bio', profileData.bio);
+      if (profileData.location) formData.append('location', profileData.location);
+
+      // Add profile picture if it's a new file
+      if (profileData.profileImage && profileData.profileImage.startsWith('file://')) {
+        formData.append('profileImage', {
+          uri: profileData.profileImage,
+          type: 'image/jpeg',
+          name: 'profile.jpg',
+        });
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type for FormData - let the browser set it
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.user) {
+          setUser(result.user);
+          return { success: true };
+        } else {
+          return { success: false, error: result.message || "Profile update failed" };
+        }
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.message || error.error || "Profile update failed" };
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      return { success: false, error: "Network error. Please check your connection." };
+    }
+  };
+
+  const value = {
+    user,
+    login,
+    register,
+    logout,
     simpleLogout,
     loading,
     loginWithGoogle,
-    refreshTokenIfNeeded
+    refreshTokenIfNeeded,
+    updateProfile
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
