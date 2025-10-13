@@ -14,7 +14,7 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS } from '../config/constants';
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS, getUploadURL } from '../config/constants';
 import { pickupVerificationService } from '../services/pickupVerification';
 import { Layout } from '../../components/ui/Layout';
 import { Card } from '../../components/ui/Card';
@@ -100,7 +100,7 @@ const PickupTrashScreen = () => {
         reportedTime: formatReportedTime(item.reportedAt),
         distance: `${(item.distance / 1000).toFixed(1)} km`,
         points: item.points || 10,
-        imageUrl: item.imageUrl || `https://picsum.photos/400/300?random=${item.id}`, // Fallback to placeholder
+        imageUrl: item.imageUrl ? getUploadURL(item.imageUrl) : `https://picsum.photos/400/300?random=${item.id}`, // Use helper for real images, fallback to placeholder
         trashType: item.trashType,
         size: item.size,
         severity: item.severity,

@@ -12,7 +12,7 @@ import {
   Linking
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS, API_BASE_URL } from "../config/constants";
+import { COLORS, SPACING, TYPOGRAPHY, RADIUS, SHADOWS, API_BASE_URL, getUploadURL } from "../config/constants";
 import {
   fetchTrashReportById,
   clearCurrentReport
@@ -159,7 +159,7 @@ const TrashDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const imageUrl = currentReport.photo_url ? `${API_BASE_URL}${currentReport.photo_url}` : null;
+  const imageUrl = currentReport.photo_url ? getUploadURL(currentReport.photo_url) : null;
 
   return (
     <View style={styles.container}>

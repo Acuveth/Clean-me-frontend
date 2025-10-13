@@ -1,8 +1,11 @@
 import { Platform } from "react-native";
-import { getAPIEndpoint } from "./secrets";
+import { getAPIEndpoint, getUploadURL as getImageURL } from "./secrets";
 
 // API Configuration
 export const API_BASE_URL = getAPIEndpoint();
+
+// Export image URL helper
+export const getUploadURL = getImageURL;
 
 // App Configuration
 export const APP_NAME = "Trash Clean";
